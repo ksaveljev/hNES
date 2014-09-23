@@ -32,3 +32,8 @@ data Mnemonic = ADC | AND | ASL | BCC
               | SEC | SED | SEI | STA
               | STX | STY | TAX | TAY
               | TSX | TXA | TXS | TYA
+
+data OpCodeView = OpCode Operand Mnemonic AddressingMode
+newtype OpCode = OpCodeC { viewOpCode :: OpCodeView }
+
+data Instruction = Instruction OpCode [Operand]
