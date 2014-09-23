@@ -1,5 +1,19 @@
 module NES.Instruction where
 
+data AddressingMode = Implicit
+                    | Accumulator
+                    | Immediate
+                    | ZeroPage
+                    | ZeroPageX
+                    | ZeroPageY
+                    | Relative
+                    | Absolute
+                    | AbsoluteX
+                    | AbsoluteY
+                    | Indirect
+                    | IndexedIndirect
+                    | IndirectIndexed
+
 data Instruction = ADC
                  | AND
                  | ASL
