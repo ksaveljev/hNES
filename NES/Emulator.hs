@@ -3,6 +3,7 @@ module NES.Emulator (emulate
                     ) where
 
 import Data.Word (Word8, Word16)
+import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
 
 import NES.CPU
@@ -29,27 +30,16 @@ loadNextWord16 = do
     store16 Pc (pc + 2)
     return w16
 
-loadInstructionArgument :: MonadEmulator m => AddressingMode -> m InstructionArgument
-loadInstructionArgument addressingMode =
-    case addressingMode of
-      Implicit -> return Empty
-      Accumulator -> return Empty
-      Absolute _ -> do
-        w16 <- loadNextWord16
-        return $ Address w16
-      Indirect _ -> do
-        w16 <- loadNextWord16
-        return $ Address w16
-      _ -> do
-        w8 <- loadNextWord8
-        return $ Operand w8
-
 decodeInstruction :: MonadEmulator m => m Instruction
 decodeInstruction = do
     opCode <- loadNextWord8
     let (mn, am) = decodeOpCode opCode
-    arg <- loadInstructionArgument am
-    return $ Instruction mn am arg
+    Instruction mn am <$> case operandLength am of
+                            1 -> sequence [loadNextWord8] 
+                            2 -> sequence [loadNextWord8, loadNextWord8]
+                            _ -> return []
 
 execute :: MonadEmulator m => Instruction -> m ()
-execute = undefined
+execute (Instruction ADC am reg) = do
+    a <- load8 A
+    undefined
