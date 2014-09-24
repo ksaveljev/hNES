@@ -1,5 +1,5 @@
-module NES.CPU ( MemoryValue
-               , Address
+module NES.CPU ( Flag(..)
+               , Storage(..)
                , CPU
                ) where
 
@@ -7,9 +7,9 @@ import Data.Word (Word8, Word16, Word64)
 import Data.STRef (STRef)
 import Data.Array.ST (STUArray)
 
-data Register = Pc | Sp | A | X | Y
+data Storage = Pc | Sp | A | X | Y | Ram Word16
 
-data Flags = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum)
+data Flag = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum)
 
 data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
                  , cpuRegisters :: STUArray s Word8 Word8

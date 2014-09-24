@@ -1,12 +1,14 @@
-module NES.MonadEmulator ( MonadEmulator
+module NES.MonadEmulator ( MonadEmulator(..)
                          ) where
 
-import NES.CPU (Address, MemoryValue)
+import Data.Word (Word8, Word16)
+
+import NES.CPU
 
 class (Functor m, Monad m) => MonadEmulator m where
-    load8 :: Address -> m Word8
-    store8 :: Address -> Word8 -> m ()
-    load16 :: Address -> m Word16
-    store16 :: Address -> Word16 -> m ()
+    load8 :: Storage -> m Word8
+    store8 :: Storage -> Word8 -> m ()
+    load16 :: Storage -> m Word16
+    store16 :: Storage -> Word16 -> m ()
     getFlag :: Flag -> m Bool
     setFlag :: Flag -> Bool -> m ()
