@@ -1,4 +1,5 @@
-module NES.Instruction where
+module NES.Instruction ( Operand
+                       ) where
 
 import Data.Word (Word8)
 
