@@ -4,5 +4,9 @@ module NES.MonadEmulator ( MonadEmulator
 import NES.CPU (Address, MemoryValue)
 
 class (Functor m, Monad m) => MonadEmulator m where
-    load :: Address -> m MemoryValue
-    store :: Address -> MemoryValue -> m ()
+    load8 :: Address -> m Word8
+    store8 :: Address -> Word8 -> m ()
+    load16 :: Address -> m Word16
+    store16 :: Address -> Word16 -> m ()
+    getFlag :: Flag -> m Bool
+    setFlag :: Flag -> Bool -> m ()

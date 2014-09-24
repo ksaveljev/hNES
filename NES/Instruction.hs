@@ -1,8 +1,4 @@
 module NES.Instruction ( Operand
-                       , OpCodeView(..)
-                       , OpCode
-                       , viewOpCode
-                       , Instruction(..)
                        ) where
 
 import Data.Word (Word8)
@@ -38,12 +34,6 @@ data Mnemonic = ADC | AND | ASL | BCC
               | STX | STY | TAX | TAY
               | TSX | TXA | TXS | TYA
 
-data OpCodeView = OpCode Operand Mnemonic AddressingMode
-newtype OpCode = OpCodeC { viewOpCode :: OpCodeView }
-
-data Instruction = Instruction OpCode [Operand]
-
-decodeOpCode :: Word8 -> OpCode
 decodeOpCode w =
     let {-# INLINE oc #-}
         oc = OpCode w
