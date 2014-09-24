@@ -1,4 +1,5 @@
-module NES.MonadEmulator where
+module NES.MonadEmulator ( MonadEmulator
+                         ) where
 
 import NES.CPU (Address, MemoryValue)
 

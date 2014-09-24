@@ -1,4 +1,8 @@
 module NES.Instruction ( Operand
+                       , OpCodeView(..)
+                       , OpCode
+                       , viewOpCode
+                       , Instruction(..)
                        ) where
 
 import Data.Word (Word8)

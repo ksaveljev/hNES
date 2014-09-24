@@ -21,6 +21,7 @@ executable hNES
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8,
                        mtl,
-                       array
+                       array,
+                       bytestring
   -- hs-source-dirs:      
   default-language:    Haskell2010
