@@ -68,18 +68,18 @@ getStorageAddr instruction@(Instruction mn am arg) =
                   h <- load8 $ Ram $ fromIntegral $ w8 + 1
                   return $ Ram $ makeW16 h l + fromIntegral y
                 _ -> oops
-      (h:l:[]) -> case am of
-                    Absolute -> return $ Ram $ makeW16 h l
-                    AbsoluteX -> do
-                      x <- load8 X
-                      return $ Ram $ makeW16 h l + fromIntegral x
-                    AbsoluteY -> do
-                      y <- load8 Y
-                      return $ Ram $ makeW16 h l + fromIntegral y
-                    _ -> oops
+      [l,h] -> case am of
+                 Absolute -> return $ Ram $ makeW16 h l
+                 AbsoluteX -> do
+                   x <- load8 X
+                   return $ Ram $ makeW16 h l + fromIntegral x
+                 AbsoluteY -> do
+                   y <- load8 Y
+                   return $ Ram $ makeW16 h l + fromIntegral y
+                 _ -> oops
       _ -> error "Incorrect Instruction argument in getStorageAddr"
       where
-        oops = error "TODO: add error"
+        oops = error "Incorrect Instruction in getStorageAddr"
 
 loadStorageValue8 :: MonadEmulator m => Instruction -> m Word8
 loadStorageValue8 instruction@(Instruction mn am arg) =
@@ -97,14 +97,14 @@ loadStorageValue8 instruction@(Instruction mn am arg) =
 loadStorageValue16 :: MonadEmulator m => Instruction -> m Word16
 loadStorageValue16 instruction@(Instruction mn am arg) =
     case arg of
-      (l:h:[]) -> case am of
-                    Absolute -> return $ makeW16 h l
-                    Indirect -> do
-                      low <- load8 $ Ram $ makeW16 h l
-                      high <- load8 $ Ram $ makeW16 h (l + 1) -- 6502 bug
-                      return $ makeW16 high low
-                    _ -> error "Incorrect Instruction in loadMemoryValue16"
-      _ -> error "Incorrect Instruction argument in loadMemoryValue16"
+      [l,h] -> case am of
+                 Absolute -> return $ makeW16 h l
+                 Indirect -> do
+                   low <- load8 $ Ram $ makeW16 h l
+                   high <- load8 $ Ram $ makeW16 h (l + 1) -- 6502 bug
+                   return $ makeW16 high low
+                 _ -> error "Incorrect Instruction in loadStorageValue16"
+      _ -> error "Incorrect Instruction argument in loadStorageValue16"
 
 storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
 storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
@@ -163,10 +163,27 @@ execute instruction@(Instruction mv am arg) =
         zero <- getFlag ZF
         pc <- load16 Pc
         when zero $ store16 Pc $ pc + fromIntegral (makeSigned v)
-      BIT -> undefined
-      BMI -> undefined
-      BNE -> undefined
-      BPL -> undefined
+      BIT -> do
+        v <- loadStorageValue8 instruction
+        a <- load8 A
+        setZeroFlag $ (v .&. a) == 0
+        setOverflowFlag $ testBit v 6
+        setNegativeFlag $ isNegative v
+      BMI -> do
+        v <- loadStorageValue8 instruction
+        negative <- getFlag NF
+        pc <- load16 Pc
+        when negative $ store16 Pc $ pc + fromIntegral (makeSigned v)
+      BNE -> do
+        v <- loadStorageValue8 instruction
+        zero <- getFlag ZF
+        pc <- load16 Pc
+        unless zero $ store16 Pc $ pc + fromIntegral (makeSigned v)
+      BPL -> do
+        v <- loadStorageValue8 instruction
+        negative <- getFlag NF
+        pc <- load16 Pc
+        unless negative $ store16 Pc $ pc + fromIntegral (makeSigned v)
       BRK -> undefined
       BVC -> undefined
       BVS -> undefined

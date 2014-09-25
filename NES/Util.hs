@@ -2,7 +2,7 @@ module NES.Util where
 
 import Data.Int (Int8)
 import Data.Word (Word8, Word16)
-import Data.Bits ((.|.), (.&.), shiftL, xor)
+import Data.Bits ((.|.), (.&.), shiftL, xor, testBit)
 
 makeW16 :: Word8 -> Word8 -> Word16
 makeW16 h l = ((fromIntegral h :: Word16) `shiftL` 8) .|. (fromIntegral l :: Word16)
@@ -15,7 +15,7 @@ isOverflow :: Word8 -> Word8 -> Word8 -> Bool
 isOverflow a b result = (a `xor` result) .&. (b `xor` result) .&. 0x80 /= 0
 
 isNegative :: Word8 -> Bool
-isNegative w8 = w8 .&. 0x80 /= 0
+isNegative w8 = testBit w8 7
 
 makeSigned :: Word8 -> Int8
 makeSigned = fromIntegral
