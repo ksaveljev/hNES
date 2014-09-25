@@ -121,6 +121,9 @@ setOverflowFlag = setFlag OF
 setZeroFlag :: MonadEmulator m => Bool -> m ()
 setZeroFlag = setFlag ZF
 
+setBreakCommandFlag :: MonadEmulator m => Bool -> m ()
+setBreakCommandFlag = setFlag BCF
+
 execute :: MonadEmulator m => Instruction -> m ()
 execute instruction@(Instruction mv am arg) =
     case mv of
@@ -184,7 +187,15 @@ execute instruction@(Instruction mv am arg) =
         negative <- getFlag NF
         pc <- load16 Pc
         unless negative $ store16 Pc $ pc + fromIntegral (makeSigned v)
-      BRK -> undefined
+      BRK -> do
+        sp <- load8 Sp
+        pc <- load16 Pc
+        undefined -- TODO: store pc to stack
+        flags <- load8 SR
+        undefined -- TODO: store flags to stack
+        setBreakCommandFlag True
+        addr <- load16 $ Ram 0xFFFE
+        store16 Pc addr
       BVC -> undefined
       BVS -> undefined
       CLC -> undefined

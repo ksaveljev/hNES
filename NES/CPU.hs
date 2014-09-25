@@ -7,8 +7,22 @@ import Data.Word (Word8, Word16, Word64)
 import Data.STRef (STRef)
 import Data.Array.ST (STUArray)
 
-data Storage = Pc | Sp | A | X | Y | Ram Word16
+-- Pc: program counter
+-- Sp: stack pointer
+-- A: accumulator
+-- X: index register X
+-- Y: index register Y
+-- SR: processor status register
+-- Ram: location in memory
+data Storage = Pc | Sp | A | X | Y | SR | Ram Word16
 
+-- CF: carry flag
+-- ZF: zero flag
+-- IDF: interrup disable flag
+-- DMF: decimal mode flag
+-- BCF: break command flag
+-- OF: overflow flag
+-- NF: negative flag
 data Flag = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum)
 
 data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
