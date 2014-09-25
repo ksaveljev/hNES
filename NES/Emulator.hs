@@ -3,7 +3,7 @@ module NES.Emulator (emulate
                     ) where
 
 import Data.Word (Word8, Word16)
-import Data.Bits ((.&.), shiftL, testBit)
+import Data.Bits ((.&.), shiftL, shiftR, testBit)
 import Control.Monad (unless, when)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
@@ -11,6 +11,7 @@ import qualified Data.ByteString as B
 import NES.CPU
 import NES.Instruction
 import NES.MonadEmulator
+import NES.EmulatorHelpers
 import NES.Util
 
 emulate :: MonadEmulator m => m ()
@@ -109,21 +110,6 @@ loadStorageValue16 instruction@(Instruction mn am arg) =
 storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
 storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
 
-setNegativeFlag :: MonadEmulator m => Bool -> m ()
-setNegativeFlag = setFlag NF
-
-setCarryFlag :: MonadEmulator m => Bool -> m ()
-setCarryFlag = setFlag CF
-
-setOverflowFlag :: MonadEmulator m => Bool -> m ()
-setOverflowFlag = setFlag OF
-
-setZeroFlag :: MonadEmulator m => Bool -> m ()
-setZeroFlag = setFlag ZF
-
-setBreakCommandFlag :: MonadEmulator m => Bool -> m ()
-setBreakCommandFlag = setFlag BCF
-
 execute :: MonadEmulator m => Instruction -> m ()
 execute instruction@(Instruction mv am arg) =
     case mv of
@@ -134,22 +120,22 @@ execute instruction@(Instruction mv am arg) =
         let result = v + a + bToW8 carry
         store8 A result
         setCarryFlag $ if carry then result <= v else result < v
-        setZeroFlag $ result == 0
+        setZeroFlag result
         setOverflowFlag $ isOverflow a v result
-        setNegativeFlag $ isNegative result
+        setNegativeFlag result
       AND -> do
         v <- loadStorageValue8 instruction
         a <- load8 A
         let result = v .&. a
         store8 A result
-        setZeroFlag $ result == 0
-        setNegativeFlag $ isNegative result
+        setZeroFlag result
+        setNegativeFlag result
       ASL -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftL` 1
         setCarryFlag $ testBit v 7
-        setZeroFlag $ result == 0
-        setNegativeFlag $ isNegative result
+        setZeroFlag result
+        setNegativeFlag result
         storeStorageValue8 instruction result
       BCC -> do
         v <- loadStorageValue8 instruction
@@ -169,9 +155,9 @@ execute instruction@(Instruction mv am arg) =
       BIT -> do
         v <- loadStorageValue8 instruction
         a <- load8 A
-        setZeroFlag $ (v .&. a) == 0
+        setZeroFlag (v .&. a)
         setOverflowFlag $ testBit v 6
-        setNegativeFlag $ isNegative v
+        setNegativeFlag v
       BMI -> do
         v <- loadStorageValue8 instruction
         negative <- getFlag NF
@@ -188,23 +174,49 @@ execute instruction@(Instruction mv am arg) =
         pc <- load16 Pc
         unless negative $ store16 Pc $ pc + fromIntegral (makeSigned v)
       BRK -> do
-        sp <- load8 Sp
-        pc <- load16 Pc
-        undefined -- TODO: store pc to stack
-        flags <- load8 SR
-        undefined -- TODO: store flags to stack
+        pc <- loadPC
+        push $ fromIntegral $ pc `shiftR` 8
+        push $ fromIntegral pc
+        load8 SR >>= push
         setBreakCommandFlag True
-        addr <- load16 $ Ram 0xFFFE
-        store16 Pc addr
-      BVC -> undefined
-      BVS -> undefined
-      CLC -> undefined
-      CLD -> undefined
-      CLI -> undefined
-      CLV -> undefined
-      CMP -> undefined
-      CPX -> undefined
-      CPY -> undefined
+        low <- loadRAM 0xFFFE
+        high <- loadRAM 0xFFFF
+        storePC $ makeW16 high low
+      BVC -> do
+        v <- loadStorageValue8 instruction
+        overflow <- getOverflowFlag
+        pc <- loadPC
+        unless overflow $ storePC $ pc + fromIntegral (makeSigned v)
+      BVS -> do
+        v <- loadStorageValue8 instruction
+        overflow <- getOverflowFlag
+        pc <- loadPC
+        when overflow $ storePC $ pc + fromIntegral (makeSigned v)
+      CLC -> setCarryFlag False
+      CLD -> setDecimalModeFlag False
+      CLI -> setInterruptDisableFlag False
+      CLV -> setOverflowFlag False
+      CMP -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let result = a - v
+        setCarryFlag $ a >= v
+        setZeroFlag result
+        setNegativeFlag result
+      CPX -> do
+        v <- loadStorageValue8 instruction
+        x <- loadX
+        let result = x - v
+        setCarryFlag $ x >= v
+        setZeroFlag result
+        setNegativeFlag result
+      CPY -> do
+        v <- loadStorageValue8 instruction
+        y <- loadY
+        let result = y - v
+        setCarryFlag $ y >= v
+        setZeroFlag result
+        setNegativeFlag result
       DEC -> undefined
       DEX -> undefined
       DEY -> undefined

@@ -18,7 +18,7 @@ data Storage = Pc | Sp | A | X | Y | SR | Ram Word16
 
 -- CF: carry flag
 -- ZF: zero flag
--- IDF: interrup disable flag
+-- IDF: interrupt disable flag
 -- DMF: decimal mode flag
 -- BCF: break command flag
 -- OF: overflow flag
