@@ -3,6 +3,8 @@ module NES.Emulator (emulate
                     ) where
 
 import Data.Word (Word8, Word16)
+import Data.Bits ((.&.), shiftL, testBit)
+import Control.Monad (unless, when)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
 
@@ -40,50 +42,60 @@ decodeInstruction = do
                             2 -> sequence [loadNextWord8, loadNextWord8]
                             _ -> return []
 
-loadMemoryValue8 :: MonadEmulator m => Instruction -> m Word8
-loadMemoryValue8 instruction@(Instruction mn am arg) = do
+getStorageAddr :: MonadEmulator m => Instruction -> m Storage
+getStorageAddr instruction@(Instruction mn am arg) =
     case arg of
       [] -> case am of
-              Implicit -> error "loadMemoryValue8 for Implicit addressing mode"
-              Accumulator -> load8 A
+              Accumulator -> return A
               _ -> oops
       [w8] -> case am of
-                Immediate -> return w8
-                ZeroPage -> load8 $ Ram $ fromIntegral w8
+                ZeroPage -> return $ Ram $ fromIntegral w8
                 ZeroPageX -> do
                   x <- load8 X
-                  load8 $ Ram $ fromIntegral $ w8 + x
+                  return $ Ram $ fromIntegral $ w8 + x
                 ZeroPageY -> do
                   y <- load8 Y
-                  load8 $ Ram $ fromIntegral $ w8 + y
-                Relative -> return w8
+                  return $ Ram $ fromIntegral $ w8 + y
                 IndexedIndirect -> do
                   x <- load8 X
                   let addr = fromIntegral $ x + w8 :: Word16
                   l <- load8 $ Ram addr
                   h <- load8 $ Ram $ addr + 1
-                  load8 $ Ram $ makeW16 h l
+                  return $ Ram $ makeW16 h l
                 IndirectIndexed -> do
                   y <- load8 Y
                   l <- load8 $ Ram $ fromIntegral w8
                   h <- load8 $ Ram $ fromIntegral $ w8 + 1
-                  load8 $ Ram $ makeW16 h l + fromIntegral y
+                  return $ Ram $ makeW16 h l + fromIntegral y
                 _ -> oops
-      (l:h:[]) -> case am of
-                    Absolute -> load8 $ Ram $ makeW16 h l
+      (h:l:[]) -> case am of
+                    Absolute -> return $ Ram $ makeW16 h l
                     AbsoluteX -> do
                       x <- load8 X
-                      load8 $ Ram $ makeW16 h l + fromIntegral x
+                      return $ Ram $ makeW16 h l + fromIntegral x
                     AbsoluteY -> do
                       y <- load8 Y
-                      load8 $ Ram $ makeW16 h l + fromIntegral y
+                      return $ Ram $ makeW16 h l + fromIntegral y
                     _ -> oops
-      _ -> error "Incorrect Instruction in loadMemoryValue8"
+      _ -> error "Incorrect Instruction argument in getStorageAddr"
       where
-        oops = error "Incorrect Instruction argument in loadMemoryValue8"
+        oops = error "TODO: add error"
 
-loadMemoryValue16 :: MonadEmulator m => Instruction -> m Word16
-loadMemoryValue16 instruction@(Instruction mn am arg) =
+loadStorageValue8 :: MonadEmulator m => Instruction -> m Word8
+loadStorageValue8 instruction@(Instruction mn am arg) =
+    case arg of
+      [w8] -> case am of
+                Immediate -> return w8
+                Relative -> return w8
+                _ -> load
+      _ -> load
+  where
+    load = do
+      addr <- getStorageAddr instruction
+      load8 addr
+
+loadStorageValue16 :: MonadEmulator m => Instruction -> m Word16
+loadStorageValue16 instruction@(Instruction mn am arg) =
     case arg of
       (l:h:[]) -> case am of
                     Absolute -> return $ makeW16 h l
@@ -93,6 +105,9 @@ loadMemoryValue16 instruction@(Instruction mn am arg) =
                       return $ makeW16 high low
                     _ -> error "Incorrect Instruction in loadMemoryValue16"
       _ -> error "Incorrect Instruction argument in loadMemoryValue16"
+
+storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
+storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
 
 setNegativeFlag :: MonadEmulator m => Bool -> m ()
 setNegativeFlag = setFlag NF
@@ -107,10 +122,10 @@ setZeroFlag :: MonadEmulator m => Bool -> m ()
 setZeroFlag = setFlag ZF
 
 execute :: MonadEmulator m => Instruction -> m ()
-execute instruction@(Instruction mv am arg) = do
+execute instruction@(Instruction mv am arg) =
     case mv of
       ADC -> do
-        v <- loadMemoryValue8 instruction
+        v <- loadStorageValue8 instruction
         a <- load8 A
         carry <- getFlag CF
         let result = v + a + bToW8 carry
@@ -119,11 +134,35 @@ execute instruction@(Instruction mv am arg) = do
         setZeroFlag $ result == 0
         setOverflowFlag $ isOverflow a v result
         setNegativeFlag $ isNegative result
-      AND -> undefined
-      ASL -> undefined
-      BCC -> undefined
-      BCS -> undefined
-      BEQ -> undefined
+      AND -> do
+        v <- loadStorageValue8 instruction
+        a <- load8 A
+        let result = v .&. a
+        store8 A result
+        setZeroFlag $ result == 0
+        setNegativeFlag $ isNegative result
+      ASL -> do
+        v <- loadStorageValue8 instruction
+        let result = v `shiftL` 1
+        setCarryFlag $ testBit v 7
+        setZeroFlag $ result == 0
+        setNegativeFlag $ isNegative result
+        storeStorageValue8 instruction result
+      BCC -> do
+        v <- loadStorageValue8 instruction
+        carry <- getFlag CF
+        pc <- load16 Pc
+        unless carry $ store16 Pc $ pc + fromIntegral (makeSigned v)
+      BCS -> do
+        v <- loadStorageValue8 instruction
+        carry <- getFlag CF
+        pc <- load16 Pc
+        when carry $ store16 Pc $ pc + fromIntegral (makeSigned v)
+      BEQ -> do
+        v <- loadStorageValue8 instruction
+        zero <- getFlag ZF
+        pc <- load16 Pc
+        when zero $ store16 Pc $ pc + fromIntegral (makeSigned v)
       BIT -> undefined
       BMI -> undefined
       BNE -> undefined
