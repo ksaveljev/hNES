@@ -1,6 +1,6 @@
 module NES.CPU ( Flag(..)
                , Storage(..)
-               , CPU
+               , CPU(..)
                ) where
 
 import Data.Word (Word8, Word16, Word64)
@@ -26,7 +26,11 @@ data Storage = Pc | Sp | A | X | Y | SR | Ram Word16
 data Flag = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum)
 
 data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
-                 , cpuRegisters :: STUArray s Word8 Word8
+                 , programCounter :: STRef s Word8
+                 , stackPointer :: STRef s Word8
+                 , registerA :: STRef s Word8
+                 , registerX :: STRef s Word8
+                 , registerY :: STRef s Word8
                  , cpuFlags :: STRef s Word8
                  , cpuCycles :: STRef s Word64
                  }
