@@ -3,7 +3,7 @@ module NES.Emulator (emulate
                     ) where
 
 import Data.Word (Word8, Word16)
-import Data.Bits ((.&.), shiftL, shiftR, testBit)
+import Data.Bits ((.&.), (.|.), shiftL, shiftR, xor, testBit)
 import Control.Monad (unless, when)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
@@ -217,25 +217,103 @@ execute instruction@(Instruction mv am arg) =
         setCarryFlag $ y >= v
         setZeroFlag result
         setNegativeFlag result
-      DEC -> undefined
-      DEX -> undefined
-      DEY -> undefined
-      EOR -> undefined
-      INC -> undefined
-      INX -> undefined
-      INY -> undefined
-      JMP -> undefined
-      JSR -> undefined
-      LDA -> undefined
-      LDX -> undefined
-      LDY -> undefined
-      LSR -> undefined
-      NOP -> undefined
-      ORA -> undefined
-      PHA -> undefined
-      PHP -> undefined
-      PLA -> undefined
-      PLP -> undefined
+      DEC -> do
+        v <- loadStorageValue8 instruction
+        let result = v - 1
+        storeStorageValue8 instruction result
+        setZeroFlag result
+        setNegativeFlag result
+      DEX -> do
+        x <- loadX
+        let result = x - 1
+        storeX result
+        setZeroFlag result
+        setNegativeFlag result
+      DEY -> do
+        y <- loadY
+        let result = y - 1
+        storeY result
+        setZeroFlag result
+        setNegativeFlag result
+      EOR -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let result = a `xor` v
+        storeA result
+        setZeroFlag result
+        setNegativeFlag result
+      INC -> do
+        v <- loadStorageValue8 instruction
+        let result = v + 1
+        storeStorageValue8 instruction result
+        setZeroFlag result
+        setNegativeFlag result
+      INX -> do
+        x <- loadX
+        let result = x + 1
+        storeX result
+        setZeroFlag result
+        setNegativeFlag result
+      INY -> do
+        y <- loadY
+        let result = y + 1
+        storeY result
+        setZeroFlag result
+        setNegativeFlag result
+      JMP -> do
+        addr <- loadStorageValue16 instruction
+        storePC addr
+      JSR -> do
+        addr <- loadStorageValue16 instruction
+        pc <- loadPC
+        let pc' = pc - 1
+        push $ fromIntegral $ pc' `shiftR` 8
+        push $ fromIntegral pc' 
+        storePC addr
+      LDA -> do
+        v <- loadStorageValue8 instruction
+        storeA v
+        setZeroFlag v
+        setNegativeFlag v
+      LDX -> do
+        v <- loadStorageValue8 instruction
+        storeX v
+        setZeroFlag v
+        setNegativeFlag v
+      LDY -> do
+        v <- loadStorageValue8 instruction
+        storeY v
+        setZeroFlag v
+        setNegativeFlag v
+      LSR -> do
+        v <- loadStorageValue8 instruction
+        let result = v `shiftR` 1
+        storeStorageValue8 instruction result
+        setCarryFlag $ testBit v 0
+        setZeroFlag result
+        setNegativeFlag result
+      NOP -> return ()
+      ORA -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let result = a .|. v
+        storeA result
+        setZeroFlag result
+        setNegativeFlag result
+      PHA -> do
+        a <- loadA
+        push a
+      PHP -> do
+        status <- loadSR
+        push status
+      PLA -> do
+        a <- pop
+        storeA a
+        setZeroFlag a
+        setNegativeFlag a
+      PLP -> do
+        status <- pop
+        storeSR status
       ROL -> undefined
       ROR -> undefined
       RTI -> undefined

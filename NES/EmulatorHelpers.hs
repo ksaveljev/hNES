@@ -57,20 +57,35 @@ storeSP = store8 Sp
 loadPC :: MonadEmulator m => m Word16
 loadPC = load16 Pc
 
+storePC :: MonadEmulator m => Word16 -> m ()
+storePC = store16 Pc
+
 loadA :: MonadEmulator m => m Word8
 loadA = load8 A
+
+storeA :: MonadEmulator m => Word8 -> m ()
+storeA = store8 A
 
 loadX :: MonadEmulator m => m Word8
 loadX = load8 X
 
+storeX :: MonadEmulator m => Word8 -> m ()
+storeX = store8 X
+
 loadY :: MonadEmulator m => m Word8
 loadY = load8 Y
 
-storePC :: MonadEmulator m => Word16 -> m ()
-storePC = store16 Pc
+storeY :: MonadEmulator m => Word8 -> m ()
+storeY = store8 Y
 
 loadRAM :: MonadEmulator m => Word16 -> m Word8
 loadRAM = load8 . Ram
+
+loadSR :: MonadEmulator m => m Word8
+loadSR = load8 SR
+
+storeSR :: MonadEmulator m => Word8 -> m ()
+storeSR = store8 SR
 
 push :: MonadEmulator m => Word8 -> m ()
 push w8 = do
