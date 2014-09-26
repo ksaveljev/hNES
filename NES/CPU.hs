@@ -1,6 +1,12 @@
 module NES.CPU ( Flag(..)
                , Storage(..)
                , CPU(..)
+               , load8
+               , store8
+               , load16
+               , store16
+               , getFlag
+               , setFlag
                ) where
 
 import Data.Word (Word8, Word16, Word64)
@@ -40,12 +46,12 @@ data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
                  }
 
 load8 :: CPU s -> Storage -> ST s Word8
-load8 cpu Sp         = readSTRef (stackPointer cpu) >>= return
-load8 cpu A          = readSTRef (registerA cpu) >>= return
-load8 cpu X          = readSTRef (registerX cpu) >>= return
-load8 cpu Y          = readSTRef (registerY cpu) >>= return
-load8 cpu SR         = readSTRef (cpuFlags cpu) >>= return
-load8 cpu (Ram addr) = readArray (cpuMemory cpu) addr >>= return
+load8 cpu Sp         = readSTRef (stackPointer cpu)
+load8 cpu A          = readSTRef (registerA cpu)
+load8 cpu X          = readSTRef (registerX cpu)
+load8 cpu Y          = readSTRef (registerY cpu)
+load8 cpu SR         = readSTRef (cpuFlags cpu)
+load8 cpu (Ram addr) = readArray (cpuMemory cpu) addr
 load8 _   Pc         = error "Trying to load word8 from word16 register (PC)"
 
 store8 :: CPU s -> Storage -> Word8 -> ST s ()
@@ -58,7 +64,7 @@ store8 cpu (Ram addr) w8 = writeArray (cpuMemory cpu) addr w8
 store8 _   Pc         _  = error "Trying to store word8 to word16 register (PC)"
 
 load16 :: CPU s -> Storage -> ST s Word16
-load16 cpu Pc          = readSTRef (programCounter cpu) >>= return
+load16 cpu Pc          = readSTRef (programCounter cpu)
 load16 _   (Ram 65535) = error "Trying to read word16 from Ram 65535"
 load16 cpu (Ram addr)  = do low <- readArray (cpuMemory cpu) addr
                             high <- readArray (cpuMemory cpu) (addr + 1)
@@ -67,7 +73,7 @@ load16 _   _           = error "Trying to load word16 from word8 register"
 
 store16 :: CPU s -> Storage -> Word16 -> ST s ()
 store16 cpu Pc          w16 = writeSTRef (programCounter cpu) w16
-store16 _   (Ram 65535) w16 = error "Trying to write word16 to Ram 65535"
+store16 _   (Ram 65535) _   = error "Trying to write word16 to Ram 65535"
 store16 cpu (Ram addr)  w16 = do let low = fromIntegral (w16 `shiftR` 8) :: Word8
                                  let high = fromIntegral w16 :: Word8
                                  writeArray (cpuMemory cpu) addr low
