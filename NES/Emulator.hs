@@ -3,7 +3,7 @@ module NES.Emulator (emulate
                     ) where
 
 import Data.Word (Word8, Word16)
-import Data.Bits ((.&.), (.|.), shiftL, shiftR, xor, testBit)
+import Data.Bits ((.&.), (.|.), shiftL, shiftR, xor, testBit, complement)
 import Control.Monad (unless, when)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
@@ -44,7 +44,7 @@ decodeInstruction = do
                             _ -> return []
 
 getStorageAddr :: MonadEmulator m => Instruction -> m Storage
-getStorageAddr instruction@(Instruction mn am arg) =
+getStorageAddr (Instruction _ am arg) =
     case arg of
       [] -> case am of
               Accumulator -> return A
@@ -83,7 +83,7 @@ getStorageAddr instruction@(Instruction mn am arg) =
         oops = error "Incorrect Instruction in getStorageAddr"
 
 loadStorageValue8 :: MonadEmulator m => Instruction -> m Word8
-loadStorageValue8 instruction@(Instruction mn am arg) =
+loadStorageValue8 instruction@(Instruction _ am arg) =
     case arg of
       [w8] -> case am of
                 Immediate -> return w8
@@ -96,7 +96,7 @@ loadStorageValue8 instruction@(Instruction mn am arg) =
       load8 addr
 
 loadStorageValue16 :: MonadEmulator m => Instruction -> m Word16
-loadStorageValue16 instruction@(Instruction mn am arg) =
+loadStorageValue16 (Instruction _ am arg) =
     case arg of
       [l,h] -> case am of
                  Absolute -> return $ makeW16 h l
@@ -111,7 +111,7 @@ storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
 storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
 
 execute :: MonadEmulator m => Instruction -> m ()
-execute instruction@(Instruction mv am arg) =
+execute instruction@(Instruction mv _ _) =
     case mv of
       ADC -> do
         v <- loadStorageValue8 instruction
@@ -314,20 +314,78 @@ execute instruction@(Instruction mv am arg) =
       PLP -> do
         status <- pop
         storeSR status
-      ROL -> undefined
-      ROR -> undefined
-      RTI -> undefined
-      RTS -> undefined
-      SBC -> undefined
-      SEC -> undefined
-      SED -> undefined
-      SEI -> undefined
-      STA -> undefined
-      STX -> undefined
-      STY -> undefined
-      TAX -> undefined
-      TAY -> undefined
-      TSX -> undefined
-      TXA -> undefined
-      TXS -> undefined
-      TYA -> undefined
+      ROL -> do
+        v <- loadStorageValue8 instruction
+        carry <- bToW8 <$> getCarryFlag
+        let result = (v `shiftL` 1) .|. carry
+        storeStorageValue8 instruction result
+        setCarryFlag $ testBit v 7
+        setZeroFlag result
+        setNegativeFlag result
+      ROR -> do
+        v <- loadStorageValue8 instruction
+        carry <- getCarryFlag
+        let result = (v `shiftR` 1) .|. if carry then 0x80 else 0
+        setCarryFlag $ testBit v 0
+        setZeroFlag result
+        setNegativeFlag result
+      RTI -> do
+        status <- pop
+        low <- pop
+        high <- pop
+        storeSR status
+        storePC $ makeW16 high low
+      RTS -> do
+        low <- pop
+        high <- pop
+        storePC $ makeW16 high low + 1
+      SBC -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        carry <- bToW8 <$> getCarryFlag
+        let result = a - v - (1 - carry)
+        storeA result
+        setCarryFlag $ if carry == 1 then result <= a else result < a
+        setZeroFlag result
+        setOverflowFlag $ isOverflow a (complement v) result
+        setNegativeFlag result
+      SEC -> setCarryFlag True
+      SED -> setDecimalModeFlag True
+      SEI -> setInterruptDisableFlag True
+      STA -> do
+        a <- loadA
+        storeStorageValue8 instruction a
+      STX -> do
+        x <- loadX
+        storeStorageValue8 instruction x
+      STY -> do
+        y <- loadY
+        storeStorageValue8 instruction y
+      TAX -> do
+        a <- loadA
+        storeX a
+        setZeroFlag a
+        setNegativeFlag a
+      TAY -> do
+        a <- loadA
+        storeY a
+        setZeroFlag a
+        setNegativeFlag a
+      TSX -> do
+        sp <- loadSP
+        storeX sp
+        setZeroFlag sp
+        setNegativeFlag sp
+      TXA -> do
+        x <- loadX
+        storeA x
+        setZeroFlag x
+        setNegativeFlag x
+      TXS -> do
+        x <- loadX
+        storeSP x
+      TYA -> do
+        y <- loadY
+        storeA y
+        setZeroFlag y
+        setNegativeFlag y
