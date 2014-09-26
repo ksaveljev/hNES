@@ -1,14 +1,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module NES.Emulator.TestEmulator where
 
-import Data.STRef (readSTRef)
 import Control.Monad.ST (ST)
 import Control.Monad.Reader (ReaderT, ask)
 import Control.Monad.Trans (lift)
 import Control.Applicative (Applicative)
 
 import NES.VM
-import NES.CPU
+import qualified NES.CPU as CPU
 import NES.MonadEmulator
 
 newtype TestEmulator s a = TestEmulator (ReaderT (VM s) (ST s) a)
@@ -17,17 +16,19 @@ newtype TestEmulator s a = TestEmulator (ReaderT (VM s) (ST s) a)
 instance MonadEmulator (TestEmulator s) where
     load8 storage = TestEmulator $ do
       vm <- ask
-      let cpu = getCPU vm
-      case storage of
-        Pc -> lift $ readSTRef $ programCounter cpu
-        Sp -> lift $ readSTRef $ stackPointer cpu
-        A -> lift $ readSTRef $ registerA cpu
-        X -> lift $ readSTRef $ registerX cpu
-        Y -> lift $ readSTRef $ registerY cpu
-        SR -> lift $ readSTRef $ cpuFlags cpu
-        Ram addr -> undefined
-    store8 = undefined
-    load16 = undefined
-    store16 = undefined
-    getFlag = undefined
-    setFlag = undefined
+      lift $ CPU.load8 (getCPU vm) storage
+    store8 storage w8 = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.store8 (getCPU vm) storage w8
+    load16 storage = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.load16 (getCPU vm) storage
+    store16 storage w16 = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.store16 (getCPU vm) storage w16
+    getFlag flag = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.getFlag (getCPU vm) flag
+    setFlag flag b = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.setFlag (getCPU vm) flag b
