@@ -8,7 +8,7 @@ import Control.Monad (unless, when)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
 
-import NES.CPU
+import NES.CPU (Flag(..), Storage(..))
 import NES.Instruction
 import NES.MonadEmulator
 import NES.EmulatorHelpers

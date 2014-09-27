@@ -3,7 +3,7 @@ module NES.EmulatorHelpers where
 import Data.Word (Word8, Word16)
 import Data.Bits (testBit)
 
-import NES.CPU
+import NES.CPU (Flag(..), Storage(..))
 import NES.MonadEmulator
 
 getCarryFlag :: MonadEmulator m => m Bool
