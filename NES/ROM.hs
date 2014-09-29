@@ -19,9 +19,11 @@ data ROM = ROM { header :: NESHeader
 loadROM :: B.ByteString -> ROM
 loadROM bytes = ROM h prg chr
   where
-    h = parseHeader $ B.take 15 bytes
-    prg = undefined
-    chr = undefined
+    h = parseHeader $ B.take 16 bytes
+    prgSize = 16384 * fromIntegral (prgROMsize h)
+    prg = B.take prgSize . B.drop 16 $ bytes
+    chrSize = 8192 * fromIntegral (chrROMsize h)
+    chr = B.take chrSize . B.drop (16 + prgSize) $ bytes
 
 parseHeader :: B.ByteString -> NESHeader
 parseHeader bytes = NESHeader { magic = B.take 4 bytes
