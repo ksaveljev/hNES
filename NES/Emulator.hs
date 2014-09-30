@@ -20,12 +20,14 @@ emulate = undefined
 
 loadProgram :: MonadEmulator m => B.ByteString -> m ()
 loadProgram program = do
-    mapM_ loadPrgROM [0..B.length prg - 1]
+    -- TODO: Currently support PRG-ROM with only 1 ROM page
+    when ((prgROMsize $ header rom) > 1) $ error "PRG-ROM has more than 1 ROM page!"
+    mapM_ (loadPrgROM 0x8000) [0..B.length prg - 1]
+    mapM_ (loadPrgROM 0xC000) [0..B.length prg - 1]
     where
-      offset = 0x8000
       rom = loadROM program
       prg = prgROM rom
-      loadPrgROM i =
+      loadPrgROM offset i =
         let byte = B.index prg i
             address = offset + fromIntegral i
         in store8 (Ram address) byte
