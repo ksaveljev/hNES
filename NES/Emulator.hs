@@ -9,6 +9,7 @@ import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
 
 import NES.CPU (Flag(..), Storage(..))
+import NES.ROM
 import NES.Instruction
 import NES.MonadEmulator
 import NES.EmulatorHelpers
@@ -18,7 +19,16 @@ emulate :: MonadEmulator m => m ()
 emulate = undefined
 
 loadProgram :: MonadEmulator m => B.ByteString -> m ()
-loadProgram program = undefined
+loadProgram program = do
+    mapM_ loadPrgROM [0..B.length prg - 1]
+    where
+      offset = 0xC000
+      rom = loadROM program
+      prg = prgROM rom
+      loadPrgROM i =
+        let byte = B.index prg i
+            address = offset + fromIntegral i
+        in store8 (Ram address) byte
 
 loadNextWord8 :: MonadEmulator m => m Word8
 loadNextWord8 = do
