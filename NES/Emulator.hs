@@ -22,7 +22,7 @@ loadProgram :: MonadEmulator m => B.ByteString -> m ()
 loadProgram program = do
     mapM_ loadPrgROM [0..B.length prg - 1]
     where
-      offset = 0xC000
+      offset = 0x8000
       rom = loadROM program
       prg = prgROM rom
       loadPrgROM i =

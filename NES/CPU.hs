@@ -11,8 +11,8 @@ module NES.CPU ( Flag(..)
 
 import Data.Word (Word8, Word16, Word64)
 import Data.Bits (shiftR, testBit, setBit, clearBit)
-import Data.STRef (STRef, readSTRef, writeSTRef)
-import Data.Array.ST (STUArray, readArray, writeArray)
+import Data.STRef (STRef, readSTRef, writeSTRef, newSTRef)
+import Data.Array.ST (STUArray, readArray, writeArray, newArray)
 import Control.Monad.ST (ST)
 
 import NES.Util
@@ -44,6 +44,26 @@ data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
                  , cpuFlags :: STRef s Word8
                  , cpuCycles :: STRef s Word64
                  }
+
+new :: ST s (CPU s)
+new = do
+    cpuMemory' <- newArray (0x0000, 0xFFFF) 0
+    programCounter' <- newSTRef 0xC000
+    stackPointer' <- newSTRef 0xFF
+    registerA' <- newSTRef 0
+    registerX' <- newSTRef 0
+    registerY' <- newSTRef 0
+    cpuFlags' <- newSTRef 0
+    cpuCycles' <- newSTRef 0
+    return CPU { cpuMemory = cpuMemory'
+               , programCounter = programCounter'
+               , stackPointer = stackPointer'
+               , registerA = registerA'
+               , registerX = registerX'
+               , registerY = registerY'
+               , cpuFlags = cpuFlags'
+               , cpuCycles = cpuCycles'
+               }
 
 load8 :: CPU s -> Storage -> ST s Word8
 load8 cpu Sp         = readSTRef (stackPointer cpu)
