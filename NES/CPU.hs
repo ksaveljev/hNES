@@ -1,6 +1,7 @@
 module NES.CPU ( Flag(..)
                , Storage(..)
                , CPU(..)
+               , new
                , load8
                , store8
                , load16
