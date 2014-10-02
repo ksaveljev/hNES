@@ -6,6 +6,9 @@ module NES.Instruction ( decodeOpCode
                        ) where
 
 import Data.Word (Word8)
+import Text.Printf (printf)
+
+import NES.Util (makeW16)
 
 data AddressingMode = Implicit
                     | Accumulator
@@ -35,8 +38,30 @@ data Mnemonic = ADC | AND | ASL | BCC
               | SEC | SED | SEI | STA
               | STX | STY | TAX | TAY
               | TSX | TXA | TXS | TYA
+              deriving (Show)
 
 data Instruction = Instruction Mnemonic AddressingMode [Word8]
+
+instance Show Instruction where
+    show (Instruction mn am arg) = show mn ++ showArgument
+      where
+        mkw16 [a,b] = makeW16 b a
+        mkw16 _ = error "mkw16 error"
+        showArgument =
+          case am of
+            Implicit -> ""
+            Accumulator -> " A"
+            Immediate -> " #$" ++ printf "%02X" (head arg)
+            ZeroPage -> " $" ++ printf "%02X" (head arg)
+            ZeroPageX -> " $" ++ printf "%02X,X" (head arg)
+            ZeroPageY -> " $" ++ printf "%02X,Y" (head arg)
+            Relative -> " $" ++ printf "*+%02X" (head arg)
+            Absolute -> " $" ++ printf "%04X" (mkw16 arg)
+            AbsoluteX -> " $" ++ printf "%04X,X" (mkw16 arg)
+            AbsoluteY -> " $" ++ printf "%04X,Y" (mkw16 arg)
+            Indirect -> " ($" ++ printf "%04X" (mkw16 arg) ++ ")"
+            IndexedIndirect -> " ($" ++ printf "%02X,X)" (head arg)
+            IndirectIndexed -> " ($" ++ printf "%02X),Y" (head arg)
 
 operandLength :: AddressingMode -> Word8
 operandLength Implicit        = 0

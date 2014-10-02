@@ -50,11 +50,11 @@ new :: ST s (CPU s)
 new = do
     cpuMemory' <- newArray (0x0000, 0xFFFF) 0
     programCounter' <- newSTRef 0xC000
-    stackPointer' <- newSTRef 0xFF
+    stackPointer' <- newSTRef 0xFD
     registerA' <- newSTRef 0
     registerX' <- newSTRef 0
     registerY' <- newSTRef 0
-    cpuFlags' <- newSTRef 0
+    cpuFlags' <- newSTRef 0x24
     cpuCycles' <- newSTRef 0
     return CPU { cpuMemory = cpuMemory'
                , programCounter = programCounter'

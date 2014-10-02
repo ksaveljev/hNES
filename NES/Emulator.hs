@@ -25,25 +25,46 @@ emulate = do
     instruction <- decodeInstruction
     execute instruction
 
-stateSnapshot :: MonadEmulator m => m String
-stateSnapshot = do
+registersSnapshot :: MonadEmulator m => m String
+registersSnapshot = do
     a <- loadA
     x <- loadX
     y <- loadY
-    status <- loadSR
+    status <- getStatus 
     sp <- loadSP
     return $ printf "A:%02X X:%02X Y:%02X P:%02X SP:%02X" a x y status sp
+    where
+      getStatus = do
+        cf <- getFlag CF
+        zf <- getFlag ZF
+        idf <- getFlag IDF
+        dmf <- getFlag DMF
+        ovf <- getFlag OF
+        nf <- getFlag NF
+        return nintendulator cf zf idf dmf ovf nf
+        {-
+        - P = 0x20;
+ 140         if (FC) P |= 0x01;
+ 141         if (FZ) P |= 0x02;
+ 142         if (FI) P |= 0x04;
+ 143         if (FD) P |= 0x08;
+ 144         if (FV) P |= 0x40;
+ 145         if (FN) P |= 0x80;
+ -}
+      nintendulator c z id dm ov n =
+        undefined
 
-traceCurrentState :: MonadEmulator m => String -> Instruction -> m ()
-traceCurrentState state instruction = trace state $ return ()
+traceCurrentState :: MonadEmulator m => Word16 -> Instruction -> String -> m ()
+traceCurrentState pc instruction registers = trace (printf "%04X %-20s" pc (show instruction) ++ " " ++ registers) $ return ()
 
 emulateCycles :: MonadEmulator m => Int -> m ()
 emulateCycles 0 = return ()
 emulateCycles n = do
-    currentState <- stateSnapshot
+    pc <- loadPC
+    registersState <- registersSnapshot
     instruction <- decodeInstruction
     execute instruction
-    traceCurrentState currentState instruction
+    traceCurrentState pc instruction registersState
     emulateCycles $ n - 1
 
 loadProgram :: MonadEmulator m => B.ByteString -> m ()
