@@ -1,17 +1,19 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE Rank2Types #-}
 module NES.Emulator.TestEmulator where
 
-import Control.Monad.ST (ST)
-import Control.Monad.Reader (ReaderT, ask)
+import Control.Monad.ST (ST, runST)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
 import Control.Monad.Trans (lift)
 import Control.Applicative (Applicative)
 
-import NES.VM
+import NES.VM (VM(..))
+import qualified NES.VM as VM
 import qualified NES.CPU as CPU
 import NES.MonadEmulator
 
 newtype TestEmulator s a = TestEmulator (ReaderT (VM s) (ST s) a)
-                         deriving (Functor, Applicative, Monad)
+                           deriving (Functor, Applicative, Monad)
 
 instance MonadEmulator (TestEmulator s) where
     load8 storage = TestEmulator $ do
@@ -32,3 +34,11 @@ instance MonadEmulator (TestEmulator s) where
     setFlag flag b = TestEmulator $ do
       vm <- ask
       lift $ CPU.setFlag (getCPU vm) flag b
+
+runTestEmulator :: (forall s. TestEmulator s a) -> a
+runTestEmulator emu = runST $ run emu
+    where
+      run :: TestEmulator s a -> ST s a
+      run (TestEmulator reader) = do
+        vm <- VM.new
+        runReaderT reader vm

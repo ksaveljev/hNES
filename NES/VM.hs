@@ -1,4 +1,5 @@
 module NES.VM ( VM(..)
+              , new
               ) where
 
 import Control.Monad.ST (ST)

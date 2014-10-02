@@ -25,7 +25,7 @@ import NES.Util
 -- Y: index register Y
 -- SR: processor status register
 -- Ram: location in memory
-data Storage = Pc | Sp | A | X | Y | SR | Ram Word16
+data Storage = Pc | Sp | A | X | Y | SR | Ram Word16 deriving Show
 
 -- CF: carry flag
 -- ZF: zero flag
@@ -34,7 +34,7 @@ data Storage = Pc | Sp | A | X | Y | SR | Ram Word16
 -- BCF: break command flag
 -- OF: overflow flag
 -- NF: negative flag
-data Flag = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum)
+data Flag = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum, Show)
 
 data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
                  , programCounter :: STRef s Word16

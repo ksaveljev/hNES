@@ -1,4 +1,5 @@
 module NES.Emulator (emulate
+                    , emulateCycles
                     , loadProgram
                     ) where
 
@@ -15,13 +16,40 @@ import NES.MonadEmulator
 import NES.EmulatorHelpers
 import NES.Util
 
+import Debug.Trace (trace)
+import Text.Printf (printf)
+
+-- TODO: execute forever
 emulate :: MonadEmulator m => m ()
-emulate = undefined
+emulate = do
+    instruction <- decodeInstruction
+    execute instruction
+
+stateSnapshot :: MonadEmulator m => m String
+stateSnapshot = do
+    a <- loadA
+    x <- loadX
+    y <- loadY
+    status <- loadSR
+    sp <- loadSP
+    return $ printf "A:%02X X:%02X Y:%02X P:%02X SP:%02X" a x y status sp
+
+traceCurrentState :: MonadEmulator m => String -> Instruction -> m ()
+traceCurrentState state instruction = trace state $ return ()
+
+emulateCycles :: MonadEmulator m => Int -> m ()
+emulateCycles 0 = return ()
+emulateCycles n = do
+    currentState <- stateSnapshot
+    instruction <- decodeInstruction
+    execute instruction
+    traceCurrentState currentState instruction
+    emulateCycles $ n - 1
 
 loadProgram :: MonadEmulator m => B.ByteString -> m ()
 loadProgram program = do
     -- TODO: Currently support PRG-ROM with only 1 ROM page
-    when ((prgROMsize $ header rom) > 1) $ error "PRG-ROM has more than 1 ROM page!"
+    when (prgROMsize (header rom) > 1) $ error "PRG-ROM has more than 1 ROM page!"
     mapM_ (loadPrgROM 0x8000) [0..B.length prg - 1]
     mapM_ (loadPrgROM 0xC000) [0..B.length prg - 1]
     where
@@ -39,12 +67,14 @@ loadNextWord8 = do
     store16 Pc (pc + 1)
     return w8
 
+{-
 loadNextWord16 :: MonadEmulator m => m Word16
 loadNextWord16 = do
     pc <- load16 Pc
     w16 <- load16 $ Ram pc
     store16 Pc (pc + 2)
     return w16
+    -}
 
 decodeInstruction :: MonadEmulator m => m Instruction
 decodeInstruction = do
