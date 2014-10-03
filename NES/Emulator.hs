@@ -78,15 +78,6 @@ loadNextWord8 = do
     store16 Pc (pc + 1)
     return w8
 
-{-
-loadNextWord16 :: MonadEmulator m => m Word16
-loadNextWord16 = do
-    pc <- load16 Pc
-    w16 <- load16 $ Ram pc
-    store16 Pc (pc + 2)
-    return w16
-    -}
-
 decodeInstruction :: MonadEmulator m => m Instruction
 decodeInstruction = do
     opCode <- loadNextWord8
@@ -173,22 +164,19 @@ execute instruction@(Instruction mv _ _) =
         let result = v + a + bToW8 carry
         store8 A result
         setCarryFlag $ if carry then result <= v else result < v
-        setZeroFlag result
         setOverflowFlag $ isOverflow a v result
-        setNegativeFlag result
+        setZNFlags result
       AND -> do
         v <- loadStorageValue8 instruction
         a <- load8 A
         let result = v .&. a
         store8 A result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       ASL -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftL` 1
         setCarryFlag $ testBit v 7
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
         storeStorageValue8 instruction result
       BCC -> do
         v <- loadStorageValue8 instruction
@@ -255,65 +243,55 @@ execute instruction@(Instruction mv _ _) =
         a <- loadA
         let result = a - v
         setCarryFlag $ a >= v
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       CPX -> do
         v <- loadStorageValue8 instruction
         x <- loadX
         let result = x - v
         setCarryFlag $ x >= v
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       CPY -> do
         v <- loadStorageValue8 instruction
         y <- loadY
         let result = y - v
         setCarryFlag $ y >= v
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       DEC -> do
         v <- loadStorageValue8 instruction
         let result = v - 1
         storeStorageValue8 instruction result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       DEX -> do
         x <- loadX
         let result = x - 1
         storeX result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       DEY -> do
         y <- loadY
         let result = y - 1
         storeY result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       EOR -> do
         v <- loadStorageValue8 instruction
         a <- loadA
         let result = a `xor` v
         storeA result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       INC -> do
         v <- loadStorageValue8 instruction
         let result = v + 1
         storeStorageValue8 instruction result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       INX -> do
         x <- loadX
         let result = x + 1
         storeX result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       INY -> do
         y <- loadY
         let result = y + 1
         storeY result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       JMP -> do
         addr <- loadStorageValue16 instruction
         storePC addr
@@ -327,33 +305,28 @@ execute instruction@(Instruction mv _ _) =
       LDA -> do
         v <- loadStorageValue8 instruction
         storeA v
-        setZeroFlag v
-        setNegativeFlag v
+        setZNFlags v
       LDX -> do
         v <- loadStorageValue8 instruction
         storeX v
-        setZeroFlag v
-        setNegativeFlag v
+        setZNFlags v
       LDY -> do
         v <- loadStorageValue8 instruction
         storeY v
-        setZeroFlag v
-        setNegativeFlag v
+        setZNFlags v
       LSR -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftR` 1
         storeStorageValue8 instruction result
         setCarryFlag $ testBit v 0
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       NOP -> return ()
       ORA -> do
         v <- loadStorageValue8 instruction
         a <- loadA
         let result = a .|. v
         storeA result
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       PHA -> do
         a <- loadA
         push a
@@ -364,8 +337,7 @@ execute instruction@(Instruction mv _ _) =
       PLA -> do
         a <- pop
         storeA a
-        setZeroFlag a
-        setNegativeFlag a
+        setZNFlags a
       PLP -> do
         status <- pop
         storeSR status
@@ -375,16 +347,14 @@ execute instruction@(Instruction mv _ _) =
         let result = (v `shiftL` 1) .|. carry
         storeStorageValue8 instruction result
         setCarryFlag $ testBit v 7
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       ROR -> do
         v <- loadStorageValue8 instruction
         carry <- getCarryFlag
         let result = (v `shiftR` 1) .|. if carry then 0x80 else 0
         storeStorageValue8 instruction result
         setCarryFlag $ testBit v 0
-        setZeroFlag result
-        setNegativeFlag result
+        setZNFlags result
       RTI -> do
         status <- pop
         low <- pop
@@ -402,9 +372,8 @@ execute instruction@(Instruction mv _ _) =
         let result = a - v - (1 - carry)
         storeA result
         setCarryFlag $ if carry == 1 then result <= a else result < a
-        setZeroFlag result
         setOverflowFlag $ isOverflow a (complement v) result
-        setNegativeFlag result
+        setZNFlags result
       SEC -> setCarryFlag True
       SED -> setDecimalModeFlag True
       SEI -> setInterruptDisableFlag True
@@ -420,28 +389,23 @@ execute instruction@(Instruction mv _ _) =
       TAX -> do
         a <- loadA
         storeX a
-        setZeroFlag a
-        setNegativeFlag a
+        setZNFlags a
       TAY -> do
         a <- loadA
         storeY a
-        setZeroFlag a
-        setNegativeFlag a
+        setZNFlags a
       TSX -> do
         sp <- loadSP
         storeX sp
-        setZeroFlag sp
-        setNegativeFlag sp
+        setZNFlags sp
       TXA -> do
         x <- loadX
         storeA x
-        setZeroFlag x
-        setNegativeFlag x
+        setZNFlags x
       TXS -> do
         x <- loadX
         storeSP x
       TYA -> do
         y <- loadY
         storeA y
-        setZeroFlag y
-        setNegativeFlag y
+        setZNFlags y

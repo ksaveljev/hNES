@@ -51,6 +51,11 @@ setDecimalModeFlag = setFlag DMF
 setInterruptDisableFlag :: MonadEmulator m => Bool -> m ()
 setInterruptDisableFlag = setFlag IDF
 
+setZNFlags :: MonadEmulator m => Word8 -> m ()
+setZNFlags w8 = do
+    setZeroFlag w8
+    setNegativeFlag w8
+
 loadSP :: MonadEmulator m => m Word8
 loadSP = load8 Sp
 
