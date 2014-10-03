@@ -73,9 +73,9 @@ loadProgram program = do
 
 loadNextWord8 :: MonadEmulator m => m Word8
 loadNextWord8 = do
-    pc <- load16 Pc
+    pc <- loadPC
     w8 <- load8 $ Ram pc
-    store16 Pc (pc + 1)
+    storePC (pc + 1)
     return w8
 
 decodeInstruction :: MonadEmulator m => m Instruction
@@ -96,19 +96,19 @@ getStorageAddr (Instruction _ am arg) =
       [w8] -> case am of
                 ZeroPage -> return $ Ram $ fromIntegral w8
                 ZeroPageX -> do
-                  x <- load8 X
+                  x <- loadX
                   return $ Ram $ fromIntegral $ w8 + x
                 ZeroPageY -> do
-                  y <- load8 Y
+                  y <- loadY
                   return $ Ram $ fromIntegral $ w8 + y
                 IndexedIndirect -> do
-                  x <- load8 X
+                  x <- loadX
                   let addr = fromIntegral $ x + w8 :: Word16
                   l <- load8 $ Ram addr
                   h <- load8 $ Ram $ addr + 1
                   return $ Ram $ makeW16 h l
                 IndirectIndexed -> do
-                  y <- load8 Y
+                  y <- loadY
                   l <- load8 $ Ram $ fromIntegral w8
                   h <- load8 $ Ram $ fromIntegral $ w8 + 1
                   return $ Ram $ makeW16 h l + fromIntegral y
@@ -116,10 +116,10 @@ getStorageAddr (Instruction _ am arg) =
       [l,h] -> case am of
                  Absolute -> return $ Ram $ makeW16 h l
                  AbsoluteX -> do
-                   x <- load8 X
+                   x <- loadX
                    return $ Ram $ makeW16 h l + fromIntegral x
                  AbsoluteY -> do
-                   y <- load8 Y
+                   y <- loadY
                    return $ Ram $ makeW16 h l + fromIntegral y
                  _ -> oops
       _ -> error "Incorrect Instruction argument in getStorageAddr"
@@ -159,67 +159,67 @@ execute instruction@(Instruction mv _ _) =
     case mv of
       ADC -> do
         v <- loadStorageValue8 instruction
-        a <- load8 A
-        carry <- getFlag CF
+        a <- loadA
+        carry <- getCarryFlag
         let result = v + a + bToW8 carry
-        store8 A result
+        storeA result
         setCarryFlag $ if carry then result <= v else result < v
         setOverflowFlag $ isOverflow a v result
         setZNFlags result
       AND -> do
         v <- loadStorageValue8 instruction
-        a <- load8 A
+        a <- loadA
         let result = v .&. a
-        store8 A result
+        storeA result
         setZNFlags result
       ASL -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftL` 1
+        storeStorageValue8 instruction result
         setCarryFlag $ testBit v 7
         setZNFlags result
-        storeStorageValue8 instruction result
       BCC -> do
         v <- loadStorageValue8 instruction
-        carry <- getFlag CF
-        pc <- load16 Pc
-        unless carry $ store16 Pc $ pc + fromIntegral (makeSigned v)
+        carry <- getCarryFlag
+        pc <- loadPC
+        unless carry $ storePC $ pc + fromIntegral (makeSigned v)
       BCS -> do
         v <- loadStorageValue8 instruction
-        carry <- getFlag CF
-        pc <- load16 Pc
-        when carry $ store16 Pc $ pc + fromIntegral (makeSigned v)
+        carry <- getCarryFlag
+        pc <- loadPC
+        when carry $ storePC $ pc + fromIntegral (makeSigned v)
       BEQ -> do
         v <- loadStorageValue8 instruction
-        zero <- getFlag ZF
-        pc <- load16 Pc
-        when zero $ store16 Pc $ pc + fromIntegral (makeSigned v)
+        zero <- getZeroFlag
+        pc <- loadPC
+        when zero $ storePC $ pc + fromIntegral (makeSigned v)
       BIT -> do
         v <- loadStorageValue8 instruction
-        a <- load8 A
+        a <- loadA
         setZeroFlag (v .&. a)
         setOverflowFlag $ testBit v 6
         setNegativeFlag v
       BMI -> do
         v <- loadStorageValue8 instruction
-        negative <- getFlag NF
-        pc <- load16 Pc
-        when negative $ store16 Pc $ pc + fromIntegral (makeSigned v)
+        negative <- getNegativeFlag
+        pc <- loadPC
+        when negative $ storePC $ pc + fromIntegral (makeSigned v)
       BNE -> do
         v <- loadStorageValue8 instruction
-        zero <- getFlag ZF
-        pc <- load16 Pc
-        unless zero $ store16 Pc $ pc + fromIntegral (makeSigned v)
+        zero <- getZeroFlag
+        pc <- loadPC
+        unless zero $ storePC $ pc + fromIntegral (makeSigned v)
       BPL -> do
         v <- loadStorageValue8 instruction
-        negative <- getFlag NF
-        pc <- load16 Pc
-        unless negative $ store16 Pc $ pc + fromIntegral (makeSigned v)
+        negative <- getNegativeFlag
+        pc <- loadPC
+        unless negative $ storePC $ pc + fromIntegral (makeSigned v)
       BRK -> do
         pc <- loadPC
         push $ fromIntegral $ pc `shiftR` 8
         push $ fromIntegral pc
         setBFlag True
-        load8 SR >>= push
+        loadSR >>= push
         setBreakCommandFlag True
         low <- loadRAM 0xFFFE
         high <- loadRAM 0xFFFF
