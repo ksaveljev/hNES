@@ -168,10 +168,7 @@ execute instruction@(Instruction mv _ _) =
         setZNFlags result
       AND -> do
         v <- loadStorageValue8 instruction
-        a <- loadA
-        let result = v .&. a
-        storeA result
-        setZNFlags result
+        alterA (.&. v) >>= setZNFlags
       ASL -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftL` 1
@@ -262,36 +259,21 @@ execute instruction@(Instruction mv _ _) =
         storeStorageValue8 instruction result
         setZNFlags result
       DEX -> do
-        x <- loadX
-        let result = x - 1
-        storeX result
-        setZNFlags result
+        alterX (subtract 1) >>= setZNFlags
       DEY -> do
-        y <- loadY
-        let result = y - 1
-        storeY result
-        setZNFlags result
+        alterY (subtract 1) >>= setZNFlags
       EOR -> do
         v <- loadStorageValue8 instruction
-        a <- loadA
-        let result = a `xor` v
-        storeA result
-        setZNFlags result
+        alterA (`xor` v) >>= setZNFlags
       INC -> do
         v <- loadStorageValue8 instruction
         let result = v + 1
         storeStorageValue8 instruction result
         setZNFlags result
       INX -> do
-        x <- loadX
-        let result = x + 1
-        storeX result
-        setZNFlags result
+        alterX (+1) >>= setZNFlags
       INY -> do
-        y <- loadY
-        let result = y + 1
-        storeY result
-        setZNFlags result
+        alterY (+1) >>= setZNFlags
       JMP -> do
         addr <- loadStorageValue16 instruction
         storePC addr
@@ -323,10 +305,7 @@ execute instruction@(Instruction mv _ _) =
       NOP -> return ()
       ORA -> do
         v <- loadStorageValue8 instruction
-        a <- loadA
-        let result = a .|. v
-        storeA result
-        setZNFlags result
+        alterA (.|. v) >>= setZNFlags
       PHA -> do
         a <- loadA
         push a
@@ -335,9 +314,7 @@ execute instruction@(Instruction mv _ _) =
         status <- loadSR
         push status
       PLA -> do
-        a <- pop
-        storeA a
-        setZNFlags a
+        pop >>= alterA . const >>= setZNFlags
       PLP -> do
         status <- pop
         storeSR status
@@ -387,25 +364,15 @@ execute instruction@(Instruction mv _ _) =
         y <- loadY
         storeStorageValue8 instruction y
       TAX -> do
-        a <- loadA
-        storeX a
-        setZNFlags a
+        loadA >>= alterX . const >>= setZNFlags
       TAY -> do
-        a <- loadA
-        storeY a
-        setZNFlags a
+        loadA >>= alterY . const >>= setZNFlags
       TSX -> do
-        sp <- loadSP
-        storeX sp
-        setZNFlags sp
+        loadSP >>= alterX . const >>= setZNFlags
       TXA -> do
-        x <- loadX
-        storeA x
-        setZNFlags x
+        loadX >>= alterA . const >>= setZNFlags
       TXS -> do
         x <- loadX
         storeSP x
       TYA -> do
-        y <- loadY
-        storeA y
-        setZNFlags y
+        loadY >>= alterA . const >>= setZNFlags

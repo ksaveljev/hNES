@@ -74,17 +74,26 @@ loadA = load8 A
 storeA :: MonadEmulator m => Word8 -> m ()
 storeA = store8 A
 
+alterA :: MonadEmulator m => (Word8 -> Word8) -> m Word8
+alterA f = loadA >>= storeA . f >> loadA
+
 loadX :: MonadEmulator m => m Word8
 loadX = load8 X
 
 storeX :: MonadEmulator m => Word8 -> m ()
 storeX = store8 X
 
+alterX :: MonadEmulator m => (Word8 -> Word8) -> m Word8
+alterX f = loadX >>= storeX . f >> loadX
+
 loadY :: MonadEmulator m => m Word8
 loadY = load8 Y
 
 storeY :: MonadEmulator m => Word8 -> m ()
 storeY = store8 Y
+
+alterY :: MonadEmulator m => (Word8 -> Word8) -> m Word8
+alterY f = loadY >>= storeY . f >> loadY
 
 loadRAM :: MonadEmulator m => Word16 -> m Word8
 loadRAM = load8 . Ram
