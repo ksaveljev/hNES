@@ -27,14 +27,17 @@ import NES.Util
 -- Ram: location in memory
 data Storage = Pc | Sp | A | X | Y | SR | Ram Word16 deriving Show
 
+-- http://wiki.nesdev.com/w/index.php/Status_flags
+--
 -- CF: carry flag
 -- ZF: zero flag
 -- IDF: interrupt disable flag
 -- DMF: decimal mode flag
--- BCF: break command flag
+-- BCF: break command flag (always set)
+-- BF: "b" flag
 -- OF: overflow flag
 -- NF: negative flag
-data Flag = CF | ZF | IDF | DMF | BCF | OF | NF deriving (Enum, Show)
+data Flag = CF | ZF | IDF | DMF | BF | BCF | OF | NF deriving (Enum, Show)
 
 data CPU s = CPU { cpuMemory :: STUArray s Word16 Word8
                  , programCounter :: STRef s Word16

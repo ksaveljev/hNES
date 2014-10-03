@@ -39,6 +39,9 @@ setOverflowFlag = setFlag OF
 setZeroFlag :: MonadEmulator m => Word8 -> m ()
 setZeroFlag = setFlag ZF . (== 0)
 
+setBFlag :: MonadEmulator m => Bool -> m ()
+setBFlag = setFlag BF
+
 setBreakCommandFlag :: MonadEmulator m => Bool -> m ()
 setBreakCommandFlag = setFlag BCF
 

@@ -34,25 +34,15 @@ registersSnapshot = do
     sp <- loadSP
     return $ printf "A:%02X X:%02X Y:%02X P:%02X SP:%02X" a x y status sp
     where
+      getStatus :: MonadEmulator m => m Word8
       getStatus = do
-        cf <- getFlag CF
-        zf <- getFlag ZF
-        idf <- getFlag IDF
-        dmf <- getFlag DMF
-        ovf <- getFlag OF
-        nf <- getFlag NF
-        return nintendulator cf zf idf dmf ovf nf
-        {-
-        - P = 0x20;
- 140         if (FC) P |= 0x01;
- 141         if (FZ) P |= 0x02;
- 142         if (FI) P |= 0x04;
- 143         if (FD) P |= 0x08;
- 144         if (FV) P |= 0x40;
- 145         if (FN) P |= 0x80;
- -}
-      nintendulator c z id dm ov n =
-        undefined
+        cf <- getFlag CF >>= (\b -> return $ if b then 0x01 else 0)
+        zf <- getFlag ZF >>= (\b -> return $ if b then 0x02 else 0)
+        idf <- getFlag IDF >>= (\b -> return $ if b then 0x04 else 0)
+        dmf <- getFlag DMF >>= (\b -> return $ if b then 0x08 else 0)
+        ovf <- getFlag OF >>= (\b -> return $ if b then 0x40 else 0)
+        nf <- getFlag NF >>= (\b -> return $ if b then 0x80 else 0)
+        return $ 0x20 .|. cf .|. zf .|. idf .|. dmf .|. ovf .|. nf
 
 traceCurrentState :: MonadEmulator m => Word16 -> Instruction -> String -> m ()
 traceCurrentState pc instruction registers = trace (printf "%04X %-20s" pc (show instruction) ++ " " ++ registers) $ return ()
@@ -240,6 +230,7 @@ execute instruction@(Instruction mv _ _) =
         pc <- loadPC
         push $ fromIntegral $ pc `shiftR` 8
         push $ fromIntegral pc
+        setBFlag True
         load8 SR >>= push
         setBreakCommandFlag True
         low <- loadRAM 0xFFFE
@@ -367,6 +358,7 @@ execute instruction@(Instruction mv _ _) =
         a <- loadA
         push a
       PHP -> do
+        setBFlag True
         status <- loadSR
         push status
       PLA -> do
@@ -389,6 +381,7 @@ execute instruction@(Instruction mv _ _) =
         v <- loadStorageValue8 instruction
         carry <- getCarryFlag
         let result = (v `shiftR` 1) .|. if carry then 0x80 else 0
+        storeStorageValue8 instruction result
         setCarryFlag $ testBit v 0
         setZeroFlag result
         setNegativeFlag result

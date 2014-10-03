@@ -6,7 +6,7 @@ import NES.Emulator.TestEmulator
 test :: B.ByteString -> ()
 test program = runTestEmulator $ do
   loadProgram program
-  emulateCycles 100
+  emulateCycles 8000
 
 main :: IO ()
 main = do
