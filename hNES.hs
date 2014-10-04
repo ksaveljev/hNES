@@ -1,6 +1,7 @@
 import qualified Data.ByteString as B
 
-import NES.Emulator
+import NES.Emulator (loadProgram)
+import NES.Debug.Emulator
 import NES.Emulator.TestEmulator
 
 test :: B.ByteString -> ()
