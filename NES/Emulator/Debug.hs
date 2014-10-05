@@ -1,4 +1,4 @@
-module NES.Debug.Emulator where
+module NES.Emulator.Debug where
 
 import Data.Word (Word8, Word16)
 import Data.Bits ((.|.))
