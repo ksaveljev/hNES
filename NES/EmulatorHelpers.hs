@@ -115,3 +115,6 @@ pop = do
     sp <- loadSP
     storeSP $ sp + 1
     load8 $ Ram $ 0x100 + fromIntegral sp + 1
+
+alterCpuCycles :: MonadEmulator m => Word8 -> m()
+alterCpuCycles w8 = getCpuCycles >>= \v -> setCpuCycles $ v + fromIntegral w8

@@ -34,6 +34,12 @@ instance MonadEmulator (TestEmulator s) where
     setFlag flag b = TestEmulator $ do
       vm <- ask
       lift $ CPU.setFlag (getCPU vm) flag b
+    getCpuCycles = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.getCpuCycles (getCPU vm)
+    setCpuCycles w64 = TestEmulator $ do
+      vm <- ask
+      lift $ CPU.setCpuCycles (getCPU vm) w64
 
 runTestEmulator :: (forall s. TestEmulator s a) -> a
 runTestEmulator emu = runST $ run emu

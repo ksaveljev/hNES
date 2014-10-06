@@ -8,6 +8,8 @@ module NES.CPU ( Flag(..)
                , store16
                , getFlag
                , setFlag
+               , getCpuCycles
+               , setCpuCycles
                ) where
 
 import Data.Word (Word8, Word16, Word64)
@@ -113,3 +115,9 @@ setFlag cpu flag b = do
     let updatedStatus = if b then setBit status (fromEnum flag)
                              else clearBit status (fromEnum flag)
     writeSTRef (cpuFlags cpu) updatedStatus
+
+getCpuCycles :: CPU s -> ST s Word64
+getCpuCycles = readSTRef . cpuCycles
+
+setCpuCycles :: CPU s -> Word64 -> ST s ()
+setCpuCycles = writeSTRef . cpuCycles

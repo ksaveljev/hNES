@@ -120,8 +120,27 @@ loadStorageValue16 (Instruction _ _ _ am arg) =
 storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
 storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
 
+pageCrossPenalty :: MonadEmulator m => Instruction -> m Cycles
+pageCrossPenalty (Instruction _ _ _ am arg) =
+    case arg of
+      [w8] -> case am of
+                IndirectIndexed -> do
+                  v <- load8 . Ram . fromIntegral $ w8
+                  y <- loadY
+                  return $ if v + y < v then 1 else 0
+                _ -> return 0
+      [l,_] -> case am of
+                 AbsoluteX -> do
+                   x <- loadX
+                   return $ if l + x < l then 1 else 0
+                 AbsoluteY -> do
+                   y <- loadY
+                   return $ if l + y < l then 1 else 0
+                 _ -> return 0
+      _ -> return 0
+
 execute :: MonadEmulator m => Instruction -> m ()
-execute instruction@(Instruction _ _ mv _ _) =
+execute instruction@(Instruction _ cycles mv _ _) =
     case mv of
       ADC -> do
         v <- loadStorageValue8 instruction
@@ -132,9 +151,11 @@ execute instruction@(Instruction _ _ mv _ _) =
         setCarryFlag $ if carry then result <= v else result < v
         setOverflowFlag $ isOverflow a v result
         setZNFlags result
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       AND -> do
         v <- loadStorageValue8 instruction
         alterA (.&. v) >>= setZNFlags
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       ASL -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftL` 1
@@ -207,6 +228,7 @@ execute instruction@(Instruction _ _ mv _ _) =
         let result = a - v
         setCarryFlag $ a >= v
         setZNFlags result
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       CPX -> do
         v <- loadStorageValue8 instruction
         x <- loadX
@@ -231,6 +253,7 @@ execute instruction@(Instruction _ _ mv _ _) =
       EOR -> do
         v <- loadStorageValue8 instruction
         alterA (`xor` v) >>= setZNFlags
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       INC -> do
         v <- loadStorageValue8 instruction
         let result = v + 1
@@ -254,14 +277,17 @@ execute instruction@(Instruction _ _ mv _ _) =
         v <- loadStorageValue8 instruction
         storeA v
         setZNFlags v
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       LDX -> do
         v <- loadStorageValue8 instruction
         storeX v
         setZNFlags v
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       LDY -> do
         v <- loadStorageValue8 instruction
         storeY v
         setZNFlags v
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       LSR -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftR` 1
@@ -272,6 +298,7 @@ execute instruction@(Instruction _ _ mv _ _) =
       ORA -> do
         v <- loadStorageValue8 instruction
         alterA (.|. v) >>= setZNFlags
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       PHA -> do
         a <- loadA
         push a
@@ -317,6 +344,7 @@ execute instruction@(Instruction _ _ mv _ _) =
         setCarryFlag $ if carry == 1 then result <= a else result < a
         setOverflowFlag $ isOverflow a (complement v) result
         setZNFlags result
+        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
       SEC -> setCarryFlag True
       SED -> setDecimalModeFlag True
       SEI -> setInterruptDisableFlag True

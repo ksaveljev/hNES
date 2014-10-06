@@ -1,5 +1,6 @@
 module NES.Instruction ( decodeOpCode
                        , AddressingMode(..)
+                       , Cycles
                        , Mnemonic(..)
                        , Instruction(..)
                        , operandLength

@@ -1,7 +1,7 @@
 module NES.MonadEmulator ( MonadEmulator(..)
                          ) where
 
-import Data.Word (Word8, Word16)
+import Data.Word (Word8, Word16, Word64)
 
 import NES.CPU
 
@@ -12,3 +12,5 @@ class (Functor m, Monad m) => MonadEmulator m where
     store16 :: Storage -> Word16 -> m ()
     getFlag :: Flag -> m Bool
     setFlag :: Flag -> Bool -> m ()
+    getCpuCycles :: m Word64
+    setCpuCycles :: Word64 -> m ()
