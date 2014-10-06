@@ -47,14 +47,14 @@ loadNextWord8 = do
 decodeInstruction :: MonadEmulator m => m Instruction
 decodeInstruction = do
     opCode <- loadNextWord8
-    let (mn, am) = decodeOpCode opCode
-    Instruction mn am <$> case operandLength am of
-                            1 -> sequence [loadNextWord8] 
-                            2 -> sequence [loadNextWord8, loadNextWord8]
-                            _ -> return []
+    let (mn, am, cycles) = decodeOpCode opCode
+    Instruction opCode cycles mn am <$> case operandLength am of
+                                          1 -> sequence [loadNextWord8] 
+                                          2 -> sequence [loadNextWord8, loadNextWord8]
+                                          _ -> return []
 
 getStorageAddr :: MonadEmulator m => Instruction -> m Storage
-getStorageAddr (Instruction _ am arg) =
+getStorageAddr (Instruction _ _ _ am arg) =
     case arg of
       [] -> case am of
               Accumulator -> return A
@@ -93,7 +93,7 @@ getStorageAddr (Instruction _ am arg) =
         oops = error "Incorrect Instruction in getStorageAddr"
 
 loadStorageValue8 :: MonadEmulator m => Instruction -> m Word8
-loadStorageValue8 instruction@(Instruction _ am arg) =
+loadStorageValue8 instruction@(Instruction _ _ _ am arg) =
     case arg of
       [w8] -> case am of
                 Immediate -> return w8
@@ -106,7 +106,7 @@ loadStorageValue8 instruction@(Instruction _ am arg) =
       load8 addr
 
 loadStorageValue16 :: MonadEmulator m => Instruction -> m Word16
-loadStorageValue16 (Instruction _ am arg) =
+loadStorageValue16 (Instruction _ _ _ am arg) =
     case arg of
       [l,h] -> case am of
                  Absolute -> return $ makeW16 h l
@@ -121,7 +121,7 @@ storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
 storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
 
 execute :: MonadEmulator m => Instruction -> m ()
-execute instruction@(Instruction mv _ _) =
+execute instruction@(Instruction _ _ mv _ _) =
     case mv of
       ADC -> do
         v <- loadStorageValue8 instruction
