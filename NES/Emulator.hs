@@ -153,8 +153,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
         setZNFlags result
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       AND -> do
-        v <- loadStorageValue8 instruction
-        alterA (.&. v) >>= setZNFlags
+        loadStorageValue8 instruction >>= alterA . (.&.) >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       ASL -> do
         v <- loadStorageValue8 instruction
@@ -249,8 +248,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
       DEX -> alterX (subtract 1) >>= setZNFlags
       DEY -> alterY (subtract 1) >>= setZNFlags
       EOR -> do
-        v <- loadStorageValue8 instruction
-        alterA (`xor` v) >>= setZNFlags
+        loadStorageValue8 instruction >>= alterA . xor >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       INC -> do
         v <- loadStorageValue8 instruction
@@ -268,19 +266,13 @@ execute instruction@(Instruction _ cycles mv _ _) =
         push $ fromIntegral pc' 
         storePC addr
       LDA -> do
-        v <- loadStorageValue8 instruction
-        storeA v
-        setZNFlags v
+        loadStorageValue8 instruction >>= alterA . const >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       LDX -> do
-        v <- loadStorageValue8 instruction
-        storeX v
-        setZNFlags v
+        loadStorageValue8 instruction >>= alterX . const >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       LDY -> do
-        v <- loadStorageValue8 instruction
-        storeY v
-        setZNFlags v
+        loadStorageValue8 instruction >>= alterY . const >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       LSR -> do
         v <- loadStorageValue8 instruction
@@ -290,8 +282,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
         setZNFlags result
       NOP -> return ()
       ORA -> do
-        v <- loadStorageValue8 instruction
-        alterA (.|. v) >>= setZNFlags
+        loadStorageValue8 instruction >>= alterA . (.|.) >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       PHA -> loadA >>= push
       PHP -> setBFlag True >> loadSR >>= push
@@ -312,10 +303,9 @@ execute instruction@(Instruction _ cycles mv _ _) =
         setCarryFlag $ testBit v 0
         setZNFlags result
       RTI -> do
-        status <- pop
+        pop >>= storeSR
         low <- pop
         high <- pop
-        storeSR status
         storePC $ makeW16 high low
       RTS -> do
         low <- pop
