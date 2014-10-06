@@ -151,11 +151,11 @@ execute instruction@(Instruction _ cycles mv _ _) =
         setCarryFlag $ if carry then result <= v else result < v
         setOverflowFlag $ isOverflow a v result
         setZNFlags result
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       AND -> do
         v <- loadStorageValue8 instruction
         alterA (.&. v) >>= setZNFlags
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       ASL -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftL` 1
@@ -228,7 +228,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
         let result = a - v
         setCarryFlag $ a >= v
         setZNFlags result
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       CPX -> do
         v <- loadStorageValue8 instruction
         x <- loadX
@@ -246,26 +246,20 @@ execute instruction@(Instruction _ cycles mv _ _) =
         let result = v - 1
         storeStorageValue8 instruction result
         setZNFlags result
-      DEX -> do
-        alterX (subtract 1) >>= setZNFlags
-      DEY -> do
-        alterY (subtract 1) >>= setZNFlags
+      DEX -> alterX (subtract 1) >>= setZNFlags
+      DEY -> alterY (subtract 1) >>= setZNFlags
       EOR -> do
         v <- loadStorageValue8 instruction
         alterA (`xor` v) >>= setZNFlags
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       INC -> do
         v <- loadStorageValue8 instruction
         let result = v + 1
         storeStorageValue8 instruction result
         setZNFlags result
-      INX -> do
-        alterX (+1) >>= setZNFlags
-      INY -> do
-        alterY (+1) >>= setZNFlags
-      JMP -> do
-        addr <- loadStorageValue16 instruction
-        storePC addr
+      INX -> alterX (+1) >>= setZNFlags
+      INY -> alterY (+1) >>= setZNFlags
+      JMP -> loadStorageValue16 instruction >>= storePC
       JSR -> do
         addr <- loadStorageValue16 instruction
         pc <- loadPC
@@ -277,17 +271,17 @@ execute instruction@(Instruction _ cycles mv _ _) =
         v <- loadStorageValue8 instruction
         storeA v
         setZNFlags v
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       LDX -> do
         v <- loadStorageValue8 instruction
         storeX v
         setZNFlags v
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       LDY -> do
         v <- loadStorageValue8 instruction
         storeY v
         setZNFlags v
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       LSR -> do
         v <- loadStorageValue8 instruction
         let result = v `shiftR` 1
@@ -298,19 +292,11 @@ execute instruction@(Instruction _ cycles mv _ _) =
       ORA -> do
         v <- loadStorageValue8 instruction
         alterA (.|. v) >>= setZNFlags
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
-      PHA -> do
-        a <- loadA
-        push a
-      PHP -> do
-        setBFlag True
-        status <- loadSR
-        push status
-      PLA -> do
-        pop >>= alterA . const >>= setZNFlags
-      PLP -> do
-        status <- pop
-        storeSR status
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
+      PHA -> loadA >>= push
+      PHP -> setBFlag True >> loadSR >>= push
+      PLA -> pop >>= alterA . const >>= setZNFlags
+      PLP -> pop >>= storeSR
       ROL -> do
         v <- loadStorageValue8 instruction
         carry <- bToW8 <$> getCarryFlag
@@ -344,29 +330,16 @@ execute instruction@(Instruction _ cycles mv _ _) =
         setCarryFlag $ if carry == 1 then result <= a else result < a
         setOverflowFlag $ isOverflow a (complement v) result
         setZNFlags result
-        pageCrossPenalty instruction >>= alterCpuCycles . ((+) cycles)
+        pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
       SEC -> setCarryFlag True
       SED -> setDecimalModeFlag True
       SEI -> setInterruptDisableFlag True
-      STA -> do
-        a <- loadA
-        storeStorageValue8 instruction a
-      STX -> do
-        x <- loadX
-        storeStorageValue8 instruction x
-      STY -> do
-        y <- loadY
-        storeStorageValue8 instruction y
-      TAX -> do
-        loadA >>= alterX . const >>= setZNFlags
-      TAY -> do
-        loadA >>= alterY . const >>= setZNFlags
-      TSX -> do
-        loadSP >>= alterX . const >>= setZNFlags
-      TXA -> do
-        loadX >>= alterA . const >>= setZNFlags
-      TXS -> do
-        x <- loadX
-        storeSP x
-      TYA -> do
-        loadY >>= alterA . const >>= setZNFlags
+      STA -> loadA >>= storeStorageValue8 instruction
+      STX -> loadX >>= storeStorageValue8 instruction
+      STY -> loadY >>= storeStorageValue8 instruction
+      TAX -> loadA >>= alterX . const >>= setZNFlags
+      TAY -> loadA >>= alterY . const >>= setZNFlags
+      TSX -> loadSP >>= alterX . const >>= setZNFlags
+      TXA -> loadX >>= alterA . const >>= setZNFlags
+      TXS -> loadX >>= storeSP
+      TYA -> loadY >>= alterA . const >>= setZNFlags
