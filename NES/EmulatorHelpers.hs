@@ -5,6 +5,7 @@ import Data.Bits (testBit)
 
 import NES.CPU (Flag(..), Storage(..))
 import NES.MonadEmulator
+import NES.Util
 
 getCarryFlag :: MonadEmulator m => m Bool
 getCarryFlag = getFlag CF
@@ -115,6 +116,12 @@ pop = do
     sp <- loadSP
     storeSP $ sp + 1
     load8 $ Ram $ 0x100 + fromIntegral sp + 1
+
+pop16 :: MonadEmulator m => m Word16
+pop16 = do
+    low <- pop
+    high <- pop
+    return $ makeW16 high low
 
 alterCpuCycles :: MonadEmulator m => Word8 -> m()
 alterCpuCycles w8 = getCpuCycles >>= \v -> setCpuCycles $ v + fromIntegral w8

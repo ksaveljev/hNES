@@ -303,13 +303,8 @@ execute instruction@(Instruction _ cycles mv _ _) =
         setZNFlags result
       RTI -> do
         pop >>= storeSR
-        low <- pop
-        high <- pop
-        storePC $ makeW16 high low
-      RTS -> do
-        low <- pop
-        high <- pop
-        storePC $ makeW16 high low + 1
+        pop16 >>= storePC
+      RTS -> fmap (+1) pop16 >>= storePC
       SBC -> do
         v <- loadStorageValue8 instruction
         a <- loadA
