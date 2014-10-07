@@ -120,6 +120,13 @@ loadStorageValue16 (Instruction _ _ _ am arg) =
 storeStorageValue8 :: MonadEmulator m => Instruction -> Word8 -> m ()
 storeStorageValue8 instruction w8 = getStorageAddr instruction >>= (`store8` w8)
 
+alterStorageValue8 :: MonadEmulator m => Instruction -> (Word8 -> Word8) -> m Word8
+alterStorageValue8 instruction f = do
+    v <- loadStorageValue8 instruction
+    let w8 = f v
+    storeStorageValue8 instruction w8
+    return w8
+
 pageCrossPenalty :: MonadEmulator m => Instruction -> m Cycles
 pageCrossPenalty (Instruction _ _ _ am arg) =
     case arg of
@@ -240,21 +247,13 @@ execute instruction@(Instruction _ cycles mv _ _) =
         let result = y - v
         setCarryFlag $ y >= v
         setZNFlags result
-      DEC -> do
-        v <- loadStorageValue8 instruction
-        let result = v - 1
-        storeStorageValue8 instruction result
-        setZNFlags result
+      DEC -> alterStorageValue8 instruction (subtract 1) >>= setZNFlags
       DEX -> alterX (subtract 1) >>= setZNFlags
       DEY -> alterY (subtract 1) >>= setZNFlags
       EOR -> do
         loadStorageValue8 instruction >>= alterA . xor >>= setZNFlags
         pageCrossPenalty instruction >>= alterCpuCycles . (cycles +)
-      INC -> do
-        v <- loadStorageValue8 instruction
-        let result = v + 1
-        storeStorageValue8 instruction result
-        setZNFlags result
+      INC -> alterStorageValue8 instruction (+1) >>= setZNFlags
       INX -> alterX (+1) >>= setZNFlags
       INY -> alterY (+1) >>= setZNFlags
       JMP -> loadStorageValue16 instruction >>= storePC
