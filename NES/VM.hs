@@ -3,14 +3,13 @@ module NES.VM ( VM(..)
               ) where
 
 import Control.Monad.ST (ST)
+import Control.Applicative ((<$>))
 
 import NES.CPU (CPU)
 import qualified NES.CPU as CPU
 
-data VM s = VM { getCPU :: CPU s
+data VM s = VM { cpu :: CPU s
                }
 
 new :: ST s (VM s)
-new = do
-    cpu <- CPU.new
-    return $ VM cpu
+new = VM <$> CPU.new
