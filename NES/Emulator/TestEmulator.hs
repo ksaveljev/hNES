@@ -8,6 +8,7 @@ import Control.Monad.Trans (lift)
 import Control.Applicative (Applicative)
 
 import NES.VM (VM(..))
+import NES.ROM (ROM)
 import qualified NES.VM as VM
 import qualified NES.CPU as CPU
 import NES.MonadEmulator
@@ -41,10 +42,10 @@ instance MonadEmulator (TestEmulator s) where
       vm <- ask
       lift $ CPU.setCpuCycles (cpu vm) w64
 
-runTestEmulator :: (forall s. TestEmulator s a) -> a
-runTestEmulator emu = runST $ run emu
+runTestEmulator :: ROM -> (forall s. TestEmulator s a) -> a
+runTestEmulator catridge emu = runST $ run emu
     where
       run :: TestEmulator s a -> ST s a
       run (TestEmulator reader) = do
-        vm <- VM.new
+        vm <- VM.new catridge
         runReaderT reader vm

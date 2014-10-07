@@ -1,4 +1,7 @@
-module NES.ROM where
+module NES.ROM ( ROM(..)
+               , NESHeader(..)
+               , loadROM
+               ) where
 
 import Data.Word (Word8)
 import qualified Data.ByteString as B
