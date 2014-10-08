@@ -14,4 +14,4 @@ CPU:
 - http://users.telenet.be/kim1-6502/6502/proman.html
 
 Unofficial opcodes:
-- http://www.ataripreservation.org/websites/freddy.offenga/illopc31.txt
+- http://nesdev.com/extra_instructions.txt
