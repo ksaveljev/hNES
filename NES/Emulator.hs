@@ -329,21 +329,89 @@ execute instruction@(Instruction _ cycles mv _ _) =
       TXS -> loadX >>= storeSP
       TYA -> loadY >>= alterA . const >>= setZNFlags
       -- unofficial
-      ASO -> undefined
-      RLA -> undefined
-      LSE -> undefined
-      RRA -> undefined
-      AXS -> undefined
-      LAX -> undefined
-      DCM -> undefined
-      INS -> undefined
-      ALR -> undefined
+      ASO -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let shiftedResult = v `shiftL` 1
+        storeStorageValue8 instruction shiftedResult
+        let result = shiftedResult .|. a
+        storeA result
+        setCarryFlag $ testBit v 7
+        setZNFlags result
+      RLA -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        carry <- bToW8 <$> getCarryFlag
+        let rotated = (v `shiftL` 1) .|. carry
+        storeStorageValue8 instruction rotated
+        let result = rotated .&. a
+        storeA result
+        setCarryFlag $ testBit v 7
+        setZNFlags result
+      LSE -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let shiftedResult = v `shiftR` 1
+        storeStorageValue8 instruction shiftedResult
+        let result = shiftedResult `xor` a
+        storeA result
+        setCarryFlag $ testBit v 0
+        setZNFlags result
+      RRA -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        carry <- getCarryFlag
+        let rotated = (v `shiftR` 1) .|. if carry then 0x80 else 0
+        storeStorageValue8 instruction rotated
+        let result = rotated + a + bToW8 (testBit v 0)
+        storeA result
+        setCarryFlag $ if (testBit v 0) then result <= rotated else result < rotated
+        setOverflowFlag $ isOverflow a rotated result
+        setZNFlags result
+      AXS -> do
+        _ <- loadStorageValue8 instruction
+        a <- loadA
+        x <- loadX
+        let result = a .&. x
+        storeStorageValue8 instruction result
+      LAX -> do
+        v <- loadStorageValue8 instruction
+        storeA v
+        storeX v
+        setZNFlags v
+      DCM -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let result = v - 1
+        storeStorageValue8 instruction result
+        setNegativeFlag $ a - result
+        setZeroFlag $ a - result
+        setCarryFlag $ a >= result
+      INS -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        carry <- bToW8 <$> getCarryFlag
+        let updated = v + 1
+        storeStorageValue8 instruction updated
+        let result = a - updated - (1 - carry)
+        storeA result
+        setCarryFlag $ if carry == 1 then result <= a else result < a
+        setOverflowFlag $ isOverflow a (complement updated) result
+        setZNFlags result
+      ALR -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let result = v .&. a
+            resultShifted = result `shiftR` 1
+            carry = testBit result 0
+        setCarryFlag carry
+        setZNFlags resultShifted
       ARR -> undefined
       XAA -> undefined
       OAL -> undefined
       SAX -> undefined
-      SKB -> undefined
-      SKW -> undefined
+      SKB -> loadStorageValue8 instruction >> return ()
+      SKW -> loadStorageValue8 instruction >> return ()
       HLT -> undefined
       TAS -> undefined
       SAY -> undefined
