@@ -3,7 +3,8 @@ module NES.EmulatorHelpers where
 import Data.Word (Word8, Word16)
 import Data.Bits (testBit)
 
-import NES.CPU (Flag(..), Storage(..))
+import NES.VM (Storage(..))
+import NES.CPU (Flag(..))
 import NES.MonadEmulator
 import NES.Util
 

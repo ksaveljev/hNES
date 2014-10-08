@@ -1,11 +1,6 @@
 module NES.CPU ( Flag(..)
-               , Storage(..)
                , CPU(..)
                , new
-               , load8
-               , store8
-               , load16
-               , store16
                , getFlag
                , setFlag
                , getCpuCycles
@@ -13,21 +8,9 @@ module NES.CPU ( Flag(..)
                ) where
 
 import Data.Word (Word8, Word16, Word64)
-import Data.Bits (shiftR, testBit, setBit, clearBit)
+import Data.Bits (testBit, setBit, clearBit)
 import Data.STRef (STRef, readSTRef, writeSTRef, newSTRef)
-import Data.Array.ST (STUArray, readArray, writeArray, newArray)
 import Control.Monad.ST (ST)
-
-import NES.Util
-
--- Pc: program counter
--- Sp: stack pointer
--- A: accumulator
--- X: index register X
--- Y: index register Y
--- SR: processor status register
--- Ram: location in memory
-data Storage = Pc | Sp | A | X | Y | SR | Ram Word16 deriving Show
 
 -- http://wiki.nesdev.com/w/index.php/Status_flags
 --
@@ -41,9 +24,7 @@ data Storage = Pc | Sp | A | X | Y | SR | Ram Word16 deriving Show
 -- NF: negative flag
 data Flag = CF | ZF | IDF | DMF | BF | BCF | OF | NF deriving (Enum, Show)
 
-data CPU s = CPU { ram :: STUArray s Word16 Word8
-                 , prgRAM :: STUArray s Word16 Word8
-                 , programCounter :: STRef s Word16
+data CPU s = CPU { programCounter :: STRef s Word16
                  , stackPointer :: STRef s Word8
                  , registerA :: STRef s Word8
                  , registerX :: STRef s Word8
@@ -54,8 +35,6 @@ data CPU s = CPU { ram :: STUArray s Word16 Word8
 
 new :: ST s (CPU s)
 new = do
-    ram' <- newArray (0x000, 0x800) 0
-    prgRAM' <- newArray (0x0000, 0x2000) 0
     programCounter' <- newSTRef 0xC000
     stackPointer' <- newSTRef 0xFD
     registerA' <- newSTRef 0
@@ -63,9 +42,7 @@ new = do
     registerY' <- newSTRef 0
     cpuFlags' <- newSTRef 0x24
     cpuCycles' <- newSTRef 0
-    return CPU { ram            = ram'
-               , prgRAM         = prgRAM'
-               , programCounter = programCounter'
+    return CPU { programCounter = programCounter'
                , stackPointer   = stackPointer'
                , registerA      = registerA'
                , registerX      = registerX'
@@ -74,40 +51,6 @@ new = do
                , cpuCycles      = cpuCycles'
                }
 
-load8 :: CPU s -> Storage -> ST s Word8
-load8 cpu Sp         = readSTRef (stackPointer cpu)
-load8 cpu A          = readSTRef (registerA cpu)
-load8 cpu X          = readSTRef (registerX cpu)
-load8 cpu Y          = readSTRef (registerY cpu)
-load8 cpu SR         = readSTRef (cpuFlags cpu)
-load8 cpu (Ram addr) = readArray (ram cpu) addr
-load8 _   Pc         = error "Trying to load word8 from word16 register (PC)"
-
-store8 :: CPU s -> Storage -> Word8 -> ST s ()
-store8 cpu Sp         w8 = writeSTRef (stackPointer cpu) w8
-store8 cpu A          w8 = writeSTRef (registerA cpu) w8
-store8 cpu X          w8 = writeSTRef (registerX cpu) w8 
-store8 cpu Y          w8 = writeSTRef (registerY cpu) w8
-store8 cpu SR         w8 = writeSTRef (cpuFlags cpu) w8
-store8 cpu (Ram addr) w8 = writeArray (ram cpu) addr w8
-store8 _   Pc         _  = error "Trying to store word8 to word16 register (PC)"
-
-load16 :: CPU s -> Storage -> ST s Word16
-load16 cpu Pc          = readSTRef (programCounter cpu)
-load16 _   (Ram 65535) = error "Trying to read word16 from Ram 65535"
-load16 cpu (Ram addr)  = do low <- readArray (ram cpu) addr
-                            high <- readArray (ram cpu) (addr + 1)
-                            return $ makeW16 high low
-load16 _   _           = error "Trying to load word16 from word8 register"
-
-store16 :: CPU s -> Storage -> Word16 -> ST s ()
-store16 cpu Pc          w16 = writeSTRef (programCounter cpu) w16
-store16 _   (Ram 65535) _   = error "Trying to write word16 to Ram 65535"
-store16 cpu (Ram addr)  w16 = do let low = fromIntegral (w16 `shiftR` 8) :: Word8
-                                 let high = fromIntegral w16 :: Word8
-                                 writeArray (ram cpu) addr low
-                                 writeArray (ram cpu) (addr + 1) high
-store16 _   _           _   = error "Trying to store word16 to word8 register"
 
 getFlag :: CPU s -> Flag -> ST s Bool
 getFlag cpu flag = readSTRef (cpuFlags cpu) >>= \status -> return $ testBit status (fromEnum flag)

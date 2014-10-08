@@ -19,16 +19,16 @@ newtype TestEmulator s a = TestEmulator (ReaderT (VM s) (ST s) a)
 instance MonadEmulator (TestEmulator s) where
     load8 storage = TestEmulator $ do
       vm <- ask
-      lift $ CPU.load8 (cpu vm) storage
+      lift $ VM.load8 vm storage
     store8 storage w8 = TestEmulator $ do
       vm <- ask
-      lift $ CPU.store8 (cpu vm) storage w8
+      lift $ VM.store8 vm storage w8
     load16 storage = TestEmulator $ do
       vm <- ask
-      lift $ CPU.load16 (cpu vm) storage
+      lift $ VM.load16 vm storage
     store16 storage w16 = TestEmulator $ do
       vm <- ask
-      lift $ CPU.store16 (cpu vm) storage w16
+      lift $ VM.store16 vm storage w16
     getFlag flag = TestEmulator $ do
       vm <- ask
       lift $ CPU.getFlag (cpu vm) flag

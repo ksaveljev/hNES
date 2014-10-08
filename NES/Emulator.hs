@@ -10,7 +10,7 @@ import Control.Monad (unless, when)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
 
-import NES.CPU (Storage(..))
+import NES.VM (Storage(..))
 import NES.ROM
 import NES.Instruction
 import NES.MonadEmulator
@@ -23,6 +23,7 @@ emulate = do
     instruction <- decodeInstruction
     execute instruction
 
+-- TODO: this is no longer valid
 loadProgram :: MonadEmulator m => B.ByteString -> m ()
 loadProgram program = do
     -- TODO: Currently support PRG-ROM with only 1 ROM page

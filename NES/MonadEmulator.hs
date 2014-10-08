@@ -3,7 +3,8 @@ module NES.MonadEmulator ( MonadEmulator(..)
 
 import Data.Word (Word8, Word16, Word64)
 
-import NES.CPU
+import NES.VM (Storage)
+import NES.CPU (Flag)
 
 class (Functor m, Monad m) => MonadEmulator m where
     load8 :: Storage -> m Word8
