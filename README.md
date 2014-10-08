@@ -12,3 +12,6 @@ ROM:
 CPU:
 - http://www.obelisk.demon.co.uk/6502/reference.html
 - http://users.telenet.be/kim1-6502/6502/proman.html
+
+Unofficial opcodes:
+- http://www.ataripreservation.org/websites/freddy.offenga/illopc31.txt
