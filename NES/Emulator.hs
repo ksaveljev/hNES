@@ -329,51 +329,25 @@ execute instruction@(Instruction _ cycles mv _ _) =
       TXS -> loadX >>= storeSP
       TYA -> loadY >>= alterA . const >>= setZNFlags
       -- unofficial
-      AAC -> do
-        v <- loadStorageValue8 instruction
-        a <- loadA
-        let result = v .&. a
-        setCarryFlag $ testBit result 7
-        setZNFlags result
-      AAX -> do
-        _ <- loadStorageValue8 instruction
-        x <- loadX
-        a <- loadA
-        let result = x .&. a
-        storeStorageValue8 instruction result
-        setZNFlags result
-      ARR -> undefined
-      ASR -> do
-        v <- loadStorageValue8 instruction
-        a <- loadA
-        let result = v .&. a
-        let shiftedResult = result `shiftR` 1
-        setCarryFlag $ testBit result 0
-        setZNFlags shiftedResult
-      ATX -> do
-        v <- loadStorageValue8 instruction
-        a <- loadA
-        let result = v .&. a
-        storeX a
-        setZNFlags result
-      AXA -> undefined
-      AXS -> undefined
-      DCP -> undefined
-      DOP -> do
-        _ <- loadStorageValue8 instruction
-        return ()
-      ISC -> undefined
-      KIL -> undefined
-      LAR -> undefined
-      LAX -> undefined
+      ASO -> undefined
       RLA -> undefined
+      LSE -> undefined
       RRA -> undefined
-      SLO -> undefined
-      SRE -> undefined
-      SXA -> undefined
-      SYA -> undefined
-      TOP -> do
-        _ <- loadStorageValue8 instruction
-        return ()
+      AXS -> undefined
+      LAX -> undefined
+      DCM -> undefined
+      INS -> undefined
+      ALR -> undefined
+      ARR -> undefined
       XAA -> undefined
+      OAL -> undefined
+      SAX -> undefined
+      SKB -> undefined
+      SKW -> undefined
+      HLT -> undefined
+      TAS -> undefined
+      SAY -> undefined
       XAS -> undefined
+      AXA -> undefined
+      ANC -> undefined
+      LAS -> undefined

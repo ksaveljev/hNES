@@ -43,18 +43,18 @@ data Mnemonic = ADC | AND | ASL | BCC
               | STX | STY | TAX | TAY
               | TSX | TXA | TXS | TYA
               -- unofficial
-              | AAC | AAX | ARR | ASR
-              | ATX | AXA | AXS | DCP
-              | DOP | ISC | KIL | LAR
-              | LAX | RLA | RRA | SLO
-              | SRE | SXA | SYA | TOP
-              | XAA | XAS
+              | ASO | RLA | LSE | RRA
+              | AXS | LAX | DCM | INS
+              | ALR | ARR | XAA | OAL
+              | SAX | SKB | SKW | HLT
+              | TAS | SAY | XAS | AXA
+              | ANC | LAS
               deriving (Show)
 
 data Instruction = Instruction OpCode Cycles Mnemonic AddressingMode [Word8]
 
 instance Show Instruction where
-    show (Instruction _ _ mn am arg) = show mn ++ showArgument
+    show (Instruction opcode _ mn am arg) = printf "%02X" opcode ++ " " ++ show mn ++ showArgument
       where
         mkw16 [a,b] = makeW16 b a
         mkw16 _ = error "mkw16 error"
@@ -243,59 +243,59 @@ decodeOpCode w =
       0x8A -> (TXA, Implicit,        2)
       0x9A -> (TXS, Implicit,        2)
       0x98 -> (TYA, Implicit,        2)
-      0x0B -> (AAC, Immediate,       2)
-      0x2B -> (AAC, Immediate,       2)
-      0x87 -> (AAX, ZeroPage,        3)
-      0x97 -> (AAX, ZeroPageY,       4)
-      0x83 -> (AAX, IndexedIndirect, 6)
-      0x8F -> (AAX, Absolute,        4)
+      0x0B -> (ANC, Immediate,       2)
+      0x2B -> (ANC, Immediate,       2)
+      0x87 -> (AXS, ZeroPage,        3)
+      0x97 -> (AXS, ZeroPageY,       4)
+      0x83 -> (AXS, IndexedIndirect, 6)
+      0x8F -> (AXS, Absolute,        4)
       0x6B -> (ARR, Immediate,       2)
-      0x4B -> (ASR, Immediate,       2)
-      0xAB -> (ATX, Immediate,       2)
+      0x4B -> (ALR, Immediate,       2)
+      0xAB -> (OAL, Immediate,       2)
       0x9F -> (AXA, AbsoluteY,       5)
       0x93 -> (AXA, IndirectIndexed, 6)
-      0xCB -> (AXS, Immediate,       2)
-      0xC7 -> (DCP, ZeroPage,        5)
-      0xD7 -> (DCP, ZeroPageX,       6)
-      0xCF -> (DCP, Absolute,        6)
-      0xDF -> (DCP, AbsoluteX,       7)
-      0xDB -> (DCP, AbsoluteY,       7)
-      0xC3 -> (DCP, IndexedIndirect, 8)
-      0xD3 -> (DCP, IndirectIndexed, 8)
-      0x04 -> (DOP, ZeroPage,        3)
-      0x14 -> (DOP, ZeroPageX,       4)
-      0x34 -> (DOP, ZeroPageX,       4)
-      0x44 -> (DOP, ZeroPage,        3)
-      0x54 -> (DOP, ZeroPageX,       4)
-      0x64 -> (DOP, ZeroPage,        3)
-      0x74 -> (DOP, ZeroPageX,       4)
-      0x80 -> (DOP, Immediate,       2)
-      0x82 -> (DOP, Immediate,       2)
-      0x89 -> (DOP, Immediate,       2)
-      0xC2 -> (DOP, Immediate,       2)
-      0xD4 -> (DOP, ZeroPageX,       4)
-      0xE2 -> (DOP, Immediate,       2)
-      0xF4 -> (DOP, ZeroPageX,       4)
-      0xE7 -> (ISC, ZeroPage,        5)
-      0xF7 -> (ISC, ZeroPageX,       6)
-      0xEF -> (ISC, Absolute,        6)
-      0xFF -> (ISC, AbsoluteX,       7)
-      0xFB -> (ISC, AbsoluteY,       7)
-      0xE3 -> (ISC, IndexedIndirect, 8)
-      0xF3 -> (ISC, IndirectIndexed, 8)
-      0x02 -> (KIL, Implicit,        0)
-      0x12 -> (KIL, Implicit,        0)
-      0x22 -> (KIL, Implicit,        0)
-      0x32 -> (KIL, Implicit,        0)
-      0x42 -> (KIL, Implicit,        0)
-      0x52 -> (KIL, Implicit,        0)
-      0x62 -> (KIL, Implicit,        0)
-      0x72 -> (KIL, Implicit,        0)
-      0x92 -> (KIL, Implicit,        0)
-      0xB2 -> (KIL, Implicit,        0)
-      0xD2 -> (KIL, Implicit,        0)
-      0xF2 -> (KIL, Implicit,        0)
-      0xBB -> (LAR, AbsoluteY,       4) -- +1 if page crossed
+      0xCB -> (SAX, Immediate,       2)
+      0xC7 -> (DCM, ZeroPage,        5)
+      0xD7 -> (DCM, ZeroPageX,       6)
+      0xCF -> (DCM, Absolute,        6)
+      0xDF -> (DCM, AbsoluteX,       7)
+      0xDB -> (DCM, AbsoluteY,       7)
+      0xC3 -> (DCM, IndexedIndirect, 8)
+      0xD3 -> (DCM, IndirectIndexed, 8)
+      0x04 -> (SKB, ZeroPage,        3)
+      0x14 -> (SKB, ZeroPageX,       4)
+      0x34 -> (SKB, ZeroPageX,       4)
+      0x44 -> (SKB, ZeroPage,        3)
+      0x54 -> (SKB, ZeroPageX,       4)
+      0x64 -> (SKB, ZeroPage,        3)
+      0x74 -> (SKB, ZeroPageX,       4)
+      0x80 -> (SKB, Immediate,       2)
+      0x82 -> (SKB, Immediate,       2)
+      0x89 -> (SKB, Immediate,       2)
+      0xC2 -> (SKB, Immediate,       2)
+      0xD4 -> (SKB, ZeroPageX,       4)
+      0xE2 -> (SKB, Immediate,       2)
+      0xF4 -> (SKB, ZeroPageX,       4)
+      0xE7 -> (INS, ZeroPage,        5)
+      0xF7 -> (INS, ZeroPageX,       6)
+      0xEF -> (INS, Absolute,        6)
+      0xFF -> (INS, AbsoluteX,       7)
+      0xFB -> (INS, AbsoluteY,       7)
+      0xE3 -> (INS, IndexedIndirect, 8)
+      0xF3 -> (INS, IndirectIndexed, 8)
+      0x02 -> (HLT, Implicit,        0)
+      0x12 -> (HLT, Implicit,        0)
+      0x22 -> (HLT, Implicit,        0)
+      0x32 -> (HLT, Implicit,        0)
+      0x42 -> (HLT, Implicit,        0)
+      0x52 -> (HLT, Implicit,        0)
+      0x62 -> (HLT, Implicit,        0)
+      0x72 -> (HLT, Implicit,        0)
+      0x92 -> (HLT, Implicit,        0)
+      0xB2 -> (HLT, Implicit,        0)
+      0xD2 -> (HLT, Implicit,        0)
+      0xF2 -> (HLT, Implicit,        0)
+      0xBB -> (LAS, AbsoluteY,       4) -- +1 if page crossed
       0xA7 -> (LAX, ZeroPage,        3)
       0xB7 -> (LAX, ZeroPageY,       4)
       0xAF -> (LAX, Absolute,        4)
@@ -323,29 +323,29 @@ decodeOpCode w =
       0x63 -> (RRA, IndexedIndirect, 8)
       0x73 -> (RRA, IndirectIndexed, 8)
       0xEB -> (SBC, Immediate,       2)
-      0x07 -> (SLO, ZeroPage,        5)
-      0x17 -> (SLO, ZeroPageX,       6)
-      0x0F -> (SLO, Absolute,        6)
-      0x1F -> (SLO, AbsoluteX,       7)
-      0x1B -> (SLO, AbsoluteY,       7)
-      0x03 -> (SLO, IndexedIndirect, 8)
-      0x13 -> (SLO, IndirectIndexed, 8)
-      0x47 -> (SRE, ZeroPage,        5)
-      0x57 -> (SRE, ZeroPageX,       6)
-      0x4F -> (SRE, Absolute,        6)
-      0x5F -> (SRE, AbsoluteX,       7)
-      0x5B -> (SRE, AbsoluteY,       7)
-      0x43 -> (SRE, IndexedIndirect, 8)
-      0x53 -> (SRE, IndirectIndexed, 8)
-      0x9E -> (SXA, AbsoluteY,       5)
-      0x9C -> (SYA, AbsoluteX,       5)
-      0x0C -> (TOP, Absolute,        4)
-      0x1C -> (TOP, AbsoluteX,       4) -- +1 if page crossed
-      0x3C -> (TOP, AbsoluteX,       4) -- +1 if page crossed
-      0x5C -> (TOP, AbsoluteX,       4) -- +1 if page crossed
-      0x7C -> (TOP, AbsoluteX,       4) -- +1 if page crossed
-      0xDC -> (TOP, AbsoluteX,       4) -- +1 if page crossed
-      0xFC -> (TOP, AbsoluteX,       4) -- +1 if page crossed
+      0x07 -> (ASO, ZeroPage,        5)
+      0x17 -> (ASO, ZeroPageX,       6)
+      0x0F -> (ASO, Absolute,        6)
+      0x1F -> (ASO, AbsoluteX,       7)
+      0x1B -> (ASO, AbsoluteY,       7)
+      0x03 -> (ASO, IndexedIndirect, 8)
+      0x13 -> (ASO, IndirectIndexed, 8)
+      0x47 -> (LSE, ZeroPage,        5)
+      0x57 -> (LSE, ZeroPageX,       6)
+      0x4F -> (LSE, Absolute,        6)
+      0x5F -> (LSE, AbsoluteX,       7)
+      0x5B -> (LSE, AbsoluteY,       7)
+      0x43 -> (LSE, IndexedIndirect, 8)
+      0x53 -> (LSE, IndirectIndexed, 8)
+      0x9E -> (XAS, AbsoluteY,       5)
+      0x9C -> (SAY, AbsoluteX,       5)
+      0x0C -> (SKW, Absolute,        4)
+      0x1C -> (SKW, AbsoluteX,       4) -- +1 if page crossed
+      0x3C -> (SKW, AbsoluteX,       4) -- +1 if page crossed
+      0x5C -> (SKW, AbsoluteX,       4) -- +1 if page crossed
+      0x7C -> (SKW, AbsoluteX,       4) -- +1 if page crossed
+      0xDC -> (SKW, AbsoluteX,       4) -- +1 if page crossed
+      0xFC -> (SKW, AbsoluteX,       4) -- +1 if page crossed
       0x8B -> (XAA, Immediate,       2)
-      0x9B -> (XAS, AbsoluteY,       5)
+      0x9B -> (TAS, AbsoluteY,       5)
       _ -> error "invalid opCode"
