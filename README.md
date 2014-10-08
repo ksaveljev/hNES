@@ -15,3 +15,4 @@ CPU:
 
 Unofficial opcodes:
 - http://nesdev.com/extra_instructions.txt
+- http://www.ataripreservation.org/websites/freddy.offenga/illopc31.txt
