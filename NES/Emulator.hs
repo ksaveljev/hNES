@@ -417,5 +417,18 @@ execute instruction@(Instruction _ cycles mv _ _) =
       SAY -> undefined
       XAS -> undefined
       AXA -> undefined
-      ANC -> undefined
-      LAS -> undefined
+      ANC -> do
+        v <- loadStorageValue8 instruction
+        a <- loadA
+        let result = v .&. a
+        storeA result
+        setCarryFlag $ testBit result 7
+        setZNFlags result
+      LAS -> do
+        v <- loadStorageValue8 instruction
+        sp <- loadSP
+        let result = v .&. sp
+        storeSP result
+        storeA result
+        storeX result
+        setZNFlags result
