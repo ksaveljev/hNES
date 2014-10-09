@@ -17,6 +17,8 @@ import NES.MonadEmulator
 import NES.EmulatorHelpers
 import NES.Util
 
+import Debug.Trace
+
 -- TODO: execute forever
 emulate :: MonadEmulator m => m ()
 emulate = do
@@ -70,9 +72,9 @@ getStorageAddr (Instruction _ _ _ am arg) =
                   return $ Ram $ fromIntegral $ w8 + y
                 IndexedIndirect -> do
                   x <- loadX
-                  let addr = fromIntegral $ x + w8 :: Word16
-                  l <- load8 $ Ram addr
-                  h <- load8 $ Ram $ addr + 1
+                  let addr = x + w8
+                  l <- load8 $ Ram $ fromIntegral addr
+                  h <- load8 $ Ram $ fromIntegral $ addr + 1
                   return $ Ram $ makeW16 h l
                 IndirectIndexed -> do
                   y <- loadY
