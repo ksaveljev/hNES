@@ -406,17 +406,17 @@ execute instruction@(Instruction _ cycles mv _ _) =
             carry = testBit result 0
         setCarryFlag carry
         setZNFlags resultShifted
-      ARR -> undefined
-      XAA -> undefined
-      OAL -> undefined
-      SAX -> undefined
+      ARR -> error "opcode not implemented"
+      XAA -> error "opcode not implemented"
+      OAL -> error "opcode not implemented"
+      SAX -> error "opcode not implemented"
       SKB -> loadStorageValue8 instruction >> return ()
       SKW -> loadStorageValue8 instruction >> return ()
-      HLT -> undefined
-      TAS -> undefined
-      SAY -> undefined
-      XAS -> undefined
-      AXA -> undefined
+      HLT -> error "opcode not implemented"
+      TAS -> error "opcode not implemented"
+      SAY -> error "opcode not implemented"
+      XAS -> error "opcode not implemented"
+      AXA -> error "opcode not implemented"
       ANC -> do
         v <- loadStorageValue8 instruction
         a <- loadA
