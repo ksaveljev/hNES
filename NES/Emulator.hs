@@ -17,8 +17,6 @@ import NES.MonadEmulator
 import NES.EmulatorHelpers
 import NES.Util
 
-import Debug.Trace
-
 -- TODO: execute forever
 emulate :: MonadEmulator m => m ()
 emulate = do

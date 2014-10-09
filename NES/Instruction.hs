@@ -54,10 +54,19 @@ data Mnemonic = ADC | AND | ASL | BCC
 data Instruction = Instruction OpCode Cycles Mnemonic AddressingMode [Word8]
 
 instance Show Instruction where
-    show (Instruction opcode _ mn am arg) = printf "%02X" opcode ++ " " ++ show mn ++ showArgument
+    show (Instruction opcode _ mn am arg) = printf "%02X" opcode ++ " " ++ arguments ++ " " ++ showmn ++ showArgument
       where
         mkw16 [a,b] = makeW16 b a
         mkw16 _ = error "mkw16 error"
+        showmn = case mn of
+                   SKB -> "NOP"
+                   SKW -> "NOP"
+                   _ -> show mn
+        arguments = case arg of
+                      [] -> "     "
+                      [w8] -> printf "%02X   " w8
+                      [l,h] -> printf "%02X %02X" l h
+                      _ -> undefined
         showArgument =
           case am of
             Implicit -> ""
