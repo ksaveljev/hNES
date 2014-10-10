@@ -19,14 +19,16 @@ import NES.ROM (ROM)
 import NES.Mapper (Mapper, loadMapper, prgLoad, prgStore)
 import NES.MemoryMap (MemoryMap(..))
 import NES.CPU (CPU(..))
+import NES.PPU (PPU)
 import qualified NES.CPU as CPU
+import qualified NES.PPU as PPU
 import qualified NES.MemoryMap as MemoryMap
 
 data VM s = VM { rom :: ROM
                , mapper :: Mapper s
                , memoryMap :: MemoryMap s
                , cpu :: CPU s
-               --, ppu :: PPU s
+               , ppu :: PPU s
                }
 
 -- Pc: program counter
@@ -39,7 +41,7 @@ data VM s = VM { rom :: ROM
 data Storage = Pc | Sp | A | X | Y | SR | Ram Word16 | VRam Word16 deriving Show
 
 new :: ROM -> ST s (VM s)
-new catridge = VM catridge (loadMapper catridge) <$> MemoryMap.new catridge <*> CPU.new
+new catridge = VM catridge (loadMapper catridge) <$> MemoryMap.new catridge <*> CPU.new <*> PPU.new
 
 load8 :: VM s -> Storage -> ST s Word8
 load8 vm Sp          = readSTRef (stackPointer $ cpu vm)
