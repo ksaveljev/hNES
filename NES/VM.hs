@@ -19,7 +19,7 @@ import NES.ROM (ROM)
 import NES.Mapper (Mapper, loadMapper, prgLoad, prgStore)
 import NES.MemoryMap (MemoryMap(..))
 import NES.CPU (CPU(..))
-import NES.PPU (PPU)
+import NES.PPU (PPU(..))
 import qualified NES.CPU as CPU
 import qualified NES.PPU as PPU
 import qualified NES.MemoryMap as MemoryMap
@@ -51,8 +51,8 @@ load8 vm Y           = readSTRef (registerY $ cpu vm)
 load8 vm SR          = readSTRef (cpuFlags $ cpu vm)
 load8 vm (Ram addr)  | addr < 0x2000 = readArray (ram $ memoryMap vm) (addr .&. 0x7FF)
                      | addr < 0x4000 = case addr .&. 7 of
-                                         0 -> undefined
-                                         1 -> undefined
+                                         0 -> readSTRef (ppuCtrl $ ppu vm)
+                                         1 -> readSTRef (ppuMask $ ppu vm)
                                          2 -> undefined
                                          3 -> undefined
                                          4 -> undefined
