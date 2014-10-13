@@ -3,7 +3,8 @@ hNES
 
 Attempting to write NES emulator
 
-##### Instruction reference
+General info:
+- http://nemulator.com/files/nes_emu.txt
 
 ROM:
 - http://wiki.nesdev.com/w/index.php/NES_2.0
