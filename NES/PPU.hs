@@ -18,7 +18,8 @@ data PPU s = PPU { ppuCtrl :: STRef s Word8
                  , ppuScroll :: STRef s Word8
                  , ppuAddress :: STRef s Word8
                  , ppuData :: STRef s Word8
-                 , oam :: STUArray s Word8 Word8
+                 , oam :: STUArray s Word8 Word8 -- sprite table (up to 64 sprites, 4 bytes per sprite)
+                 , openBus :: STRef s Word8 -- open bus for reading write-only and writing read-only registers
                  }
 
 new :: ST s (PPU s)
@@ -32,6 +33,7 @@ new = do
     ppuAddress' <- newSTRef 0x0
     ppuData' <- newSTRef 0x0
     oam' <- newArray (0x00, 0xFF) 0xFF
+    openBus' <- newSTRef 0x0
     return PPU { ppuCtrl = ppuCtrl'
                , ppuMask = ppuMask'
                , ppuStatus = ppuStatus'
@@ -41,6 +43,7 @@ new = do
                , ppuAddress = ppuAddress'
                , ppuData = ppuData'
                , oam = oam'
+               , openBus = openBus'
                }
 
 readPPURegister :: PPU s -> Word16 -> ST s Word8
