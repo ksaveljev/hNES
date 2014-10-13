@@ -19,7 +19,7 @@ import NES.ROM (ROM)
 import NES.Mapper (Mapper, loadMapper, prgLoad, prgStore)
 import NES.MemoryMap (MemoryMap(..))
 import NES.CPU (CPU(..))
-import NES.PPU (PPU(..))
+import NES.PPU (PPU(..), readPPURegister, writePPURegister)
 import qualified NES.CPU as CPU
 import qualified NES.PPU as PPU
 import qualified NES.MemoryMap as MemoryMap
@@ -50,16 +50,7 @@ load8 vm X           = readSTRef (registerX $ cpu vm)
 load8 vm Y           = readSTRef (registerY $ cpu vm)
 load8 vm SR          = readSTRef (cpuFlags $ cpu vm)
 load8 vm (Ram addr)  | addr < 0x2000 = readArray (ram $ memoryMap vm) (addr .&. 0x7FF)
-                     | addr < 0x4000 = case addr .&. 7 of
-                                         0 -> readSTRef (ppuCtrl $ ppu vm)
-                                         1 -> readSTRef (ppuMask $ ppu vm)
-                                         2 -> undefined
-                                         3 -> undefined
-                                         4 -> undefined
-                                         5 -> undefined
-                                         6 -> undefined
-                                         7 -> undefined
-                                         _ -> error "cannot happen"
+                     | addr < 0x4000 = readPPURegister (ppu vm) addr
                      | otherwise = prgLoad (mapper vm) (memoryMap vm) addr
 load8 vm (VRam addr) = seq (vm, addr) undefined -- TODO
 load8 _  Pc          = error "Trying to load word8 from word16 register (PC)"
@@ -71,16 +62,7 @@ store8 vm X           w8 = writeSTRef (registerX $ cpu vm) w8
 store8 vm Y           w8 = writeSTRef (registerY $ cpu vm) w8
 store8 vm SR          w8 = writeSTRef (cpuFlags $ cpu vm) w8
 store8 vm (Ram addr)  w8 | addr < 0x2000 = writeArray (ram $ memoryMap vm) (addr .&. 0x7FF) w8
-                         | addr < 0x4000 = case addr .&. 7 of
-                                             0 -> undefined
-                                             1 -> undefined
-                                             2 -> undefined
-                                             3 -> undefined
-                                             4 -> undefined
-                                             5 -> undefined
-                                             6 -> undefined
-                                             7 -> undefined
-                                             _ -> error "cannot happen"
+                         | addr < 0x4000 = writePPURegister (ppu vm) addr w8
                          | otherwise = prgStore (mapper vm) (memoryMap vm) addr w8
 store8 vm (VRam addr) w8 = seq (vm, addr, w8) undefined -- TODO
 store8 _  Pc          _  = error "Trying to store word8 to word16 register (PC)"
