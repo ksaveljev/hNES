@@ -5,8 +5,8 @@ module NES.PPU ( PPU(..)
                ) where
 
 import Data.Word (Word8, Word16)
-import Data.Bits ((.&.))
-import Data.STRef (STRef, newSTRef, readSTRef)
+import Data.Bits ((.&.), (.|.))
+import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
 import Data.Array.ST (STUArray, newArray, readArray)
 import Control.Monad.ST (ST)
 
@@ -49,15 +49,16 @@ new = do
 readPPURegister :: PPU s -> Word16 -> ST s Word8
 readPPURegister ppu addr =
     case addr .&. 7 of
-      0 -> error "open bus register; not implemented"
-      1 -> error "open bus register; not implemented"
-      2 -> undefined
-      3 -> error "open bus register; not implemented"
-      4 -> readSTRef (oamAddr ppu) >>= readArray (oam ppu)
-      5 -> error "open bus register; not implemented"
-      6 -> error "open bus register; not implemented"
+      2 -> do
+        w8 <- readSTRef (ppuStatus ppu)
+        bus <- readSTRef (openBus ppu)
+        let tmp = w8 .|. (bus .&. 0x1F)
+            updatedBus = (bus .&. 0x1F) .|. (w8 .&. 0xE0)
+        writeSTRef (openBus ppu) updatedBus
+        return tmp
+      4 -> readSTRef (oamAddr ppu) >>= readArray (oam ppu) >>= \w8 -> writeSTRef (openBus ppu) w8 >> return w8
       7 -> undefined
-      _ -> error "cannot happen"
+      _ -> readSTRef (openBus ppu)
 
 
 writePPURegister :: PPU s -> Word16 -> Word8 -> ST s ()
