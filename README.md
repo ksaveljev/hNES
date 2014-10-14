@@ -20,3 +20,5 @@ Unofficial opcodes:
 
 PPU:
 - http://wiki.nesdev.com/w/index.php/PPU
+- http://forums.nesdev.com/viewtopic.php?t=664
+- http://wiki.nesdev.com/w/index.php/The_skinny_on_NES_scrolling
