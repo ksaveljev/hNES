@@ -10,7 +10,7 @@ module NES.VM ( VM(..)
 
 import Data.Word (Word8, Word16)
 import Data.STRef (readSTRef, writeSTRef)
-import Data.Bits ((.&.), (.|.))
+import Data.Bits ((.&.), (.|.), shiftL, shiftR)
 import Control.Monad.ST (ST)
 import Data.Array.ST (readArray, writeArray)
 import Control.Applicative ((<$>), (<*>))
@@ -99,7 +99,8 @@ writePPURegister vm addr w8 =
       0 -> do
         writeSTRef (ppuCtrl $ ppu vm) w8
         writeSTRef (openBus $ ppu vm) w8
-        -- TODO: missing some functionality
+        t <- readSTRef (loopyT $ ppu vm)
+        writeSTRef (loopyT $ ppu vm) $ (t .&. 0x73FF) + ((fromIntegral w8 .&. 0x3) `shiftL` 10)
       1 -> do
         writeSTRef (ppuMask $ ppu vm) w8
         writeSTRef (openBus $ ppu vm) w8
@@ -109,10 +110,32 @@ writePPURegister vm addr w8 =
         writeSTRef (openBus $ ppu vm) w8
       4 -> do
         oamAddress <- readSTRef (oamAddr $ ppu vm)
-        writeArray (oam $ ppu vm) oamAddress w8
+        writeArray (oam $ ppu vm) oamAddress (w8 .&. 0xE3)
         writeSTRef (oamAddr $ ppu vm) (oamAddress + 1)
         writeSTRef (openBus $ ppu vm) w8
-      5 -> undefined -- TODO
-      6 -> undefined
+      5 -> do
+        latch <- readSTRef (scrollLatch $ ppu vm)
+        t <- readSTRef (loopyT $ ppu vm)
+        case latch of
+          True -> do
+            let tValue = t .&. 0x7FE0
+            writeSTRef (loopyT $ ppu vm) $ tValue + fromIntegral (w8 `shiftR` 3)
+            writeSTRef (loopyX $ ppu vm) (w8 .&. 0x7)
+          False -> do
+            let tValue = ((fromIntegral w8 .&. 0xF8) `shiftL` 2) .|. ((fromIntegral w8 .&. 0x7) `shiftL` 12)
+            writeSTRef (loopyT $ ppu vm) $ (t .&. 0xC1F) .|. tValue
+        writeSTRef (scrollLatch $ ppu vm) (not latch)
+        writeSTRef (openBus $ ppu vm) w8
+      6 -> do
+        latch <- readSTRef (scrollLatch $ ppu vm)
+        t <- readSTRef (loopyT $ ppu vm)
+        case latch of
+          True -> writeSTRef (loopyT $ ppu vm) $ (t .&. 0xFF) .|. ((fromIntegral w8 .&. 0x3F) `shiftL` 8)
+          False -> do
+            let tValue = (t .&. 0x7F00) .|. fromIntegral w8
+            writeSTRef (loopyT $ ppu vm) tValue
+            writeSTRef (loopyV $ ppu vm) tValue
+        writeSTRef (scrollLatch $ ppu vm) (not latch)
+        writeSTRef (openBus $ ppu vm) w8
       7 -> undefined
       _ -> error "cannot happen"
