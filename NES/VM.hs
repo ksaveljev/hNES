@@ -16,10 +16,10 @@ import Data.Array.ST (readArray, writeArray)
 import Control.Applicative ((<$>), (<*>))
 
 import NES.ROM (ROM)
-import NES.Mapper (Mapper, loadMapper, prgLoad, prgStore)
+import NES.Mapper (Mapper, loadMapper, prgLoad, prgStore, chrLoad, chrStore)
 import NES.MemoryMap (MemoryMap(..))
 import NES.CPU (CPU(..))
-import NES.PPU (PPU(..))
+import NES.PPU hiding (new)
 import qualified NES.CPU as CPU
 import qualified NES.PPU as PPU
 import qualified NES.MemoryMap as MemoryMap
@@ -90,7 +90,32 @@ readPPURegister vm addr =
         w8 <- readArray (oam $ ppu vm) oamAddress
         writeSTRef (openBus $ ppu vm) w8
         return w8
-      7 -> undefined -- TODO
+      7 -> do -- Reads are delayed by one cycle (except if address is in palette range)
+        v <- readSTRef (loopyV $ ppu vm)
+        w8 <- if v < 0x3F00 then do
+                              buf <- readSTRef (bufferedValue $ ppu vm)
+                              result <- chrLoad (mapper vm) (memoryMap vm) v
+                              writeSTRef (bufferedValue $ ppu vm) result
+                              writeSTRef (openBus $ ppu vm) buf
+                              return buf
+                            else do
+                              buf <- chrLoad (mapper vm) (memoryMap vm) (v - 0x1000)
+                              writeSTRef (bufferedValue $ ppu vm) buf
+                              result <- chrLoad (mapper vm) (memoryMap vm) v
+                              writeSTRef (openBus $ ppu vm) result
+                              return result
+        scanline' <- readSTRef (scanline $ ppu vm)
+        ppuOn <- isPPUOn $ ppu vm
+        if not ppuOn || (scanline' > 240 && scanline' < 261)
+          then do
+            incr <- getVramAddrIncrement $ ppu vm
+            writeSTRef (loopyV $ ppu vm) (v + incr)
+          else do
+            -- if $2007 is read during the rendering then PPU increment
+            -- both horizontal and vertical counters erroneously
+            loopyVXIncrement (ppu vm)
+            loopyVYIncrement (ppu vm)
+        return w8
       _ -> readSTRef (openBus $ ppu vm)
 
 writePPURegister :: VM s -> Word16 -> Word8 -> ST s ()
@@ -137,5 +162,5 @@ writePPURegister vm addr w8 =
             writeSTRef (loopyV $ ppu vm) tValue
         writeSTRef (scrollLatch $ ppu vm) (not latch)
         writeSTRef (openBus $ ppu vm) w8
-      7 -> undefined
+      7 -> undefined -- TODO
       _ -> error "cannot happen"
