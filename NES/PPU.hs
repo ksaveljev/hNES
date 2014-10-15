@@ -72,12 +72,14 @@ getVramAddrIncrement ppu = do
     ctrl <- readSTRef (ppuCtrl ppu)
     return $ if testBit ctrl 2 then 32 else 1
 
+-- http://wiki.nesdev.com/w/index.php/The_skinny_on_NES_scrolling#Coarse_X_increment
 loopyVXIncrement :: PPU s -> ST s ()
 loopyVXIncrement ppu = do
     v <- readSTRef (loopyV ppu)
     -- if coarse X == 31 then coarse X = 0 and switch horizontal nametable else increment coarse X
     writeSTRef (loopyV ppu) $ if v .&. 0x001F == 31 then (v .&. complement 0x001F) `xor` 0x0400 else v + 1
 
+-- http://wiki.nesdev.com/w/index.php/The_skinny_on_NES_scrolling#Y_increment
 loopyVYIncrement :: PPU s -> ST s ()
 loopyVYIncrement ppu = do
     v <- readSTRef (loopyV ppu)

@@ -91,25 +91,25 @@ readPPURegister vm addr =
         writeSTRef (openBus $ ppu vm) w8
         return w8
       7 -> do -- Reads are delayed by one cycle (except if address is in palette range)
-        v <- readSTRef (loopyV $ ppu vm)
-        w8 <- if v < 0x3F00 then do
-                              buf <- readSTRef (bufferedValue $ ppu vm)
-                              result <- chrLoad (mapper vm) (memoryMap vm) v
-                              writeSTRef (bufferedValue $ ppu vm) result
-                              writeSTRef (openBus $ ppu vm) buf
-                              return buf
-                            else do
-                              buf <- chrLoad (mapper vm) (memoryMap vm) (v - 0x1000)
-                              writeSTRef (bufferedValue $ ppu vm) buf
-                              result <- chrLoad (mapper vm) (memoryMap vm) v
-                              writeSTRef (openBus $ ppu vm) result
-                              return result
+        loopyV' <- readSTRef (loopyV $ ppu vm)
+        w8 <- if loopyV' < 0x3F00 then do
+                                    buf <- readSTRef (bufferedValue $ ppu vm)
+                                    result <- chrLoad (mapper vm) (memoryMap vm) loopyV'
+                                    writeSTRef (bufferedValue $ ppu vm) result
+                                    writeSTRef (openBus $ ppu vm) buf
+                                    return buf
+                                  else do
+                                    buf <- chrLoad (mapper vm) (memoryMap vm) (loopyV' - 0x1000)
+                                    writeSTRef (bufferedValue $ ppu vm) buf
+                                    result <- chrLoad (mapper vm) (memoryMap vm) loopyV'
+                                    writeSTRef (openBus $ ppu vm) result
+                                    return result
         scanline' <- readSTRef (scanline $ ppu vm)
         ppuOn <- isPPUOn $ ppu vm
         if not ppuOn || (scanline' > 240 && scanline' < 261)
           then do
             incr <- getVramAddrIncrement $ ppu vm
-            writeSTRef (loopyV $ ppu vm) (v + incr)
+            writeSTRef (loopyV $ ppu vm) (loopyV' + incr)
           else do
             -- if $2007 is read during the rendering then PPU increment
             -- both horizontal and vertical counters erroneously
@@ -124,8 +124,8 @@ writePPURegister vm addr w8 =
       0 -> do
         writeSTRef (ppuCtrl $ ppu vm) w8
         writeSTRef (openBus $ ppu vm) w8
-        t <- readSTRef (loopyT $ ppu vm)
-        writeSTRef (loopyT $ ppu vm) $ (t .&. 0x73FF) + ((fromIntegral w8 .&. 0x3) `shiftL` 10)
+        loopyT' <- readSTRef (loopyT $ ppu vm)
+        writeSTRef (loopyT $ ppu vm) $ (loopyT' .&. 0x73FF) + ((fromIntegral w8 .&. 0x3) `shiftL` 10)
       1 -> do
         writeSTRef (ppuMask $ ppu vm) w8
         writeSTRef (openBus $ ppu vm) w8
@@ -140,27 +140,36 @@ writePPURegister vm addr w8 =
         writeSTRef (openBus $ ppu vm) w8
       5 -> do
         latch <- readSTRef (scrollLatch $ ppu vm)
-        t <- readSTRef (loopyT $ ppu vm)
+        loopyT' <- readSTRef (loopyT $ ppu vm)
         case latch of
           True -> do
-            let tValue = t .&. 0x7FE0
+            let tValue = loopyT' .&. 0x7FE0
             writeSTRef (loopyT $ ppu vm) $ tValue + fromIntegral (w8 `shiftR` 3)
             writeSTRef (loopyX $ ppu vm) (w8 .&. 0x7)
           False -> do
             let tValue = ((fromIntegral w8 .&. 0xF8) `shiftL` 2) .|. ((fromIntegral w8 .&. 0x7) `shiftL` 12)
-            writeSTRef (loopyT $ ppu vm) $ (t .&. 0xC1F) .|. tValue
+            writeSTRef (loopyT $ ppu vm) $ (loopyT' .&. 0xC1F) .|. tValue
         writeSTRef (scrollLatch $ ppu vm) (not latch)
         writeSTRef (openBus $ ppu vm) w8
       6 -> do
         latch <- readSTRef (scrollLatch $ ppu vm)
-        t <- readSTRef (loopyT $ ppu vm)
+        loopyT' <- readSTRef (loopyT $ ppu vm)
         case latch of
-          True -> writeSTRef (loopyT $ ppu vm) $ (t .&. 0xFF) .|. ((fromIntegral w8 .&. 0x3F) `shiftL` 8)
+          True -> writeSTRef (loopyT $ ppu vm) $ (loopyT' .&. 0xFF) .|. ((fromIntegral w8 .&. 0x3F) `shiftL` 8)
           False -> do
-            let tValue = (t .&. 0x7F00) .|. fromIntegral w8
+            let tValue = (loopyT' .&. 0x7F00) .|. fromIntegral w8
             writeSTRef (loopyT $ ppu vm) tValue
             writeSTRef (loopyV $ ppu vm) tValue
         writeSTRef (scrollLatch $ ppu vm) (not latch)
         writeSTRef (openBus $ ppu vm) w8
-      7 -> undefined -- TODO
+      7 -> do
+        scanline' <- readSTRef (scanline $ ppu vm)
+        loopyV' <- readSTRef (loopyV $ ppu vm)
+        chrStore (mapper vm) (memoryMap vm) loopyV' w8
+        ppuOn <- isPPUOn $ ppu vm
+        if not ppuOn || (scanline' > 240 && scanline' < 261)
+          then do
+            incr <- getVramAddrIncrement $ ppu vm
+            writeSTRef (loopyV $ ppu vm) (loopyV' + incr)
+          else undefined -- TODO: not sure about this case... something about incorrect loopyVXIncrement and loopyVYIncrement
       _ -> error "cannot happen"

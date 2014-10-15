@@ -23,10 +23,10 @@ prgStore Mapper0 mem addr w8 =
     when (addr >= 0x6000 && addr < 0x8000) $ writeArray (prgRAM mem) (addr .&. 0x1FFF) w8
 
 chrLoad :: Mapper s -> MemoryMap s -> Word16 -> ST s Word8
-chrLoad = undefined
+chrLoad = undefined -- TODO
 
 chrStore :: Mapper s -> MemoryMap s -> Word16 -> Word8 -> ST s ()
-chrStore = undefined
+chrStore = undefined -- TODO
 
 
 loadMapper :: ROM -> Mapper s
