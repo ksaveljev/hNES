@@ -41,7 +41,9 @@ data VM s = VM { rom :: ROM
 data Storage = Pc | Sp | A | X | Y | SR | Ram Word16 | VRam Word16 deriving Show
 
 new :: ROM -> ST s (VM s)
-new catridge = VM catridge (loadMapper catridge) <$> MemoryMap.new catridge <*> CPU.new <*> PPU.new
+new catridge = do
+    mapper' <- loadMapper catridge
+    VM catridge mapper' <$> MemoryMap.new catridge <*> CPU.new <*> PPU.new
 
 load8 :: VM s -> Storage -> ST s Word8
 load8 vm Sp          = readSTRef (stackPointer $ cpu vm)
