@@ -249,7 +249,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
         let pc' = pc + fromIntegral (makeSigned v)
             pageCarry = not overflow && not (samePage pc pc')
             penalty = bToW8 (not overflow) + bToW8 pageCarry
-        unless overflow $ storePC $ pc + fromIntegral (makeSigned v)
+        unless overflow $ storePC pc'
         alterCpuCycles $ cycles + penalty
       BVS -> do
         v <- loadStorageValue8 instruction
@@ -258,7 +258,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
         let pc' = pc + fromIntegral (makeSigned v)
             pageCarry = overflow && not (samePage pc pc')
             penalty = bToW8 overflow + bToW8 pageCarry
-        when overflow $ storePC $ pc + fromIntegral (makeSigned v)
+        when overflow $ storePC pc'
         alterCpuCycles $ cycles + penalty
       CLC -> setCarryFlag False
       CLD -> setDecimalModeFlag False
