@@ -6,7 +6,7 @@ module NES.Emulator (emulate
 
 import Data.Word (Word8, Word16)
 import Data.Bits ((.&.), (.|.), shiftL, shiftR, xor, testBit, complement)
-import Control.Monad (unless, when)
+import Control.Monad (unless, when, void)
 import Control.Applicative ((<$>))
 import qualified Data.ByteString as B
 
@@ -147,6 +147,9 @@ pageCrossPenalty (Instruction _ _ _ am arg) =
                  _ -> return 0
       _ -> return 0
 
+samePage :: Word16 -> Word16 -> Bool
+samePage a b = (a .&. 0xFF00) == (b .&. 0xFF00)
+
 execute :: MonadEmulator m => Instruction -> m ()
 execute instruction@(Instruction _ cycles mv _ _) =
     case mv of
@@ -173,17 +176,29 @@ execute instruction@(Instruction _ cycles mv _ _) =
         v <- loadStorageValue8 instruction
         carry <- getCarryFlag
         pc <- loadPC
-        unless carry $ storePC $ pc + fromIntegral (makeSigned v)
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = not carry && not (samePage pc pc')
+            penalty = bToW8 (not carry) + bToW8 pageCarry
+        unless carry $ storePC pc'
+        alterCpuCycles $ cycles + penalty
       BCS -> do
         v <- loadStorageValue8 instruction
         carry <- getCarryFlag
         pc <- loadPC
-        when carry $ storePC $ pc + fromIntegral (makeSigned v)
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = carry && not (samePage pc pc')
+            penalty = bToW8 carry + bToW8 pageCarry
+        when carry $ storePC pc'
+        alterCpuCycles $ cycles + penalty
       BEQ -> do
         v <- loadStorageValue8 instruction
         zero <- getZeroFlag
         pc <- loadPC
-        when zero $ storePC $ pc + fromIntegral (makeSigned v)
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = zero && not (samePage pc pc')
+            penalty = bToW8 zero + bToW8 pageCarry
+        when zero $ storePC pc'
+        alterCpuCycles $ cycles + penalty
       BIT -> do
         v <- loadStorageValue8 instruction
         a <- loadA
@@ -194,17 +209,29 @@ execute instruction@(Instruction _ cycles mv _ _) =
         v <- loadStorageValue8 instruction
         negative <- getNegativeFlag
         pc <- loadPC
-        when negative $ storePC $ pc + fromIntegral (makeSigned v)
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = negative && not (samePage pc pc')
+            penalty = bToW8 negative + bToW8 pageCarry
+        when negative $ storePC pc'
+        alterCpuCycles $ cycles + penalty
       BNE -> do
         v <- loadStorageValue8 instruction
         zero <- getZeroFlag
         pc <- loadPC
-        unless zero $ storePC $ pc + fromIntegral (makeSigned v)
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = not zero && not (samePage pc pc')
+            penalty = bToW8 (not zero) + bToW8 pageCarry
+        unless zero $ storePC pc'
+        alterCpuCycles $ cycles + penalty
       BPL -> do
         v <- loadStorageValue8 instruction
         negative <- getNegativeFlag
         pc <- loadPC
-        unless negative $ storePC $ pc + fromIntegral (makeSigned v)
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = not negative && not (samePage pc pc')
+            penalty = bToW8 (not negative) + bToW8 pageCarry
+        unless negative $ storePC pc'
+        alterCpuCycles $ cycles + penalty
       BRK -> do
         pc <- loadPC
         push $ fromIntegral $ pc `shiftR` 8
@@ -219,12 +246,20 @@ execute instruction@(Instruction _ cycles mv _ _) =
         v <- loadStorageValue8 instruction
         overflow <- getOverflowFlag
         pc <- loadPC
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = not overflow && not (samePage pc pc')
+            penalty = bToW8 (not overflow) + bToW8 pageCarry
         unless overflow $ storePC $ pc + fromIntegral (makeSigned v)
+        alterCpuCycles $ cycles + penalty
       BVS -> do
         v <- loadStorageValue8 instruction
         overflow <- getOverflowFlag
         pc <- loadPC
+        let pc' = pc + fromIntegral (makeSigned v)
+            pageCarry = overflow && not (samePage pc pc')
+            penalty = bToW8 overflow + bToW8 pageCarry
         when overflow $ storePC $ pc + fromIntegral (makeSigned v)
+        alterCpuCycles $ cycles + penalty
       CLC -> setCarryFlag False
       CLD -> setDecimalModeFlag False
       CLI -> setInterruptDisableFlag False
@@ -365,7 +400,7 @@ execute instruction@(Instruction _ cycles mv _ _) =
         storeStorageValue8 instruction rotated
         let result = rotated + a + bToW8 (testBit v 0)
         storeA result
-        setCarryFlag $ if (testBit v 0) then result <= rotated else result < rotated
+        setCarryFlag $ if testBit v 0 then result <= rotated else result < rotated
         setOverflowFlag $ isOverflow a rotated result
         setZNFlags result
       AXS -> do
@@ -410,8 +445,8 @@ execute instruction@(Instruction _ cycles mv _ _) =
       XAA -> error "opcode not implemented"
       OAL -> error "opcode not implemented"
       SAX -> error "opcode not implemented"
-      SKB -> loadStorageValue8 instruction >> return ()
-      SKW -> loadStorageValue8 instruction >> return ()
+      SKB -> void $ loadStorageValue8 instruction
+      SKW -> void $ loadStorageValue8 instruction
       HLT -> error "opcode not implemented"
       TAS -> error "opcode not implemented"
       SAY -> error "opcode not implemented"
