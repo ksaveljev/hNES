@@ -3,7 +3,7 @@ hNES
 
 Attempting to write NES emulator
 
-*** Current state ***
+### Current state ###
 Unfortunately this is far from finished. I lost the interest in this project
 during the PPU part. It requies good understanding of the internal workings in
 order to make everything work, but for some reason I began to pay less and less
